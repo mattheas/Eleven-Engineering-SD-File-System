@@ -27,17 +27,17 @@ SDCard::~SDCard()
 {
 }
 
-initialization_result_t SDCard::get_initialization_result() const
+SDCard::initialization_result_t SDCard::get_initialization_result() const
 {
     return initialization_result;
 }
 
-BootSectorInformation SDCard::get_boot_sector_information() const
+SDCard::BootSectorInformation SDCard::get_boot_sector_information() const
 {
     return boot_sector_information;
 }
 
-initialization_result_t SDCard::initialize_sd_card()
+SDCard::initialization_result_t SDCard::initialize_sd_card()
 {
     return initialization_result_t::INIT_RESULT_NA;
 }
