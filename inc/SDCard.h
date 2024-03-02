@@ -9,6 +9,8 @@
 #ifndef _SDCARD_H_
 #define _SDCARD_H_
 
+#include <SPI.h>
+
 namespace sd_driver
 {
 
