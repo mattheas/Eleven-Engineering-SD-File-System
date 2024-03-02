@@ -44,7 +44,8 @@ class SDCard
     {
         INIT_SUCCESS = 0, /**< initalization status was succesful, SD card is
                              ready to receive commands now */
-        INIT_FAILED_ON_CMD0,      /**< initialzation failed on CMD0 */
+        INIT_FAILED_ON_CMD0,      /**< initialization failed on CMD0 */
+        INIT_FAILED_ON_CMD8, /**< initialization failed on CMD8 */
         INIT_RESULT_NA    /**< initialization status is not available (NA)*/
     };
 
@@ -54,7 +55,8 @@ class SDCard
     enum class sd_card_version_t
     {
         VER_1 = 0, /**< SD version specification 1.X */
-        VER_2      /**< SD version specification 2.00 or later */
+        VER_2,     /**< SD version specification 2.00 or later */
+        VER_NA     /**< SD version not available */
     };
 
     /**
@@ -65,7 +67,8 @@ class SDCard
         SDSC = 0, /**< Capacity of <2GB */
         SDHC,     /**< Capacity between 2GB and 32GB */
         SDXC,     /**< Capacity between 32GB and 2TB */
-        SDUC      /**< Capacity between 2TB and 128 TB */
+        SDUC,     /**< Capacity between 2TB and 128 TB */
+        SDNA      /**< SD standard not available */
     };
 
     /**
@@ -73,6 +76,12 @@ class SDCard
      */
     struct BootSectorInformation
     {
+    };
+
+    struct SDCardInformation
+    {
+        sd_card_version_t sd_card_version = sd_card_version_t::VER_NA;
+        sd_card_standard_t sd_card_standard = sd_card_standard_t::SDNA;
     };
 
     /**
@@ -91,6 +100,8 @@ class SDCard
      */
     BootSectorInformation get_boot_sector_information() const;
 
+    SDCardInformation get_sd_card_information() const;
+
     /**
      * @brief Attmpets initialization of communication with SD card to put it in
      * a state such that its ready to receive commands
@@ -100,19 +111,31 @@ class SDCard
     initialization_result_t initialize_sd_card();
 
   private:
-    /**
-     * @brief A valid response from the SD card that it has received the issued 
-     * command, it verifies/ acknowledges it, and it is currently in idle state 
-     * (which means its running the initialization process)
-     */
-    const uint16_t SD_CARD_IN_IDLE_MODE_RESPONSE = 1U;
+    enum class sd_card_command_response_t
+    {
+        /**
+         * @brief A valid response from the SD card that it has received the issued 
+         * command, it verifies/ acknowledges it, and it is NOT in the idle state 
+         * (which means its finished the initialization process succesfully)
+         */
+        SD_CARD_NOT_IN_IDLE_MODE_RESPONSE = 0x0,
 
-    /**
-     * @brief A valid response from the SD card that it has received the issued 
-     * command, it verifies/ acknowledges it, and it is NOT in the idle state 
-     * (which means its finished the initialization process succesfully)
-     */
-    const uint16_t SD_CARD_NOT_IN_IDLE_MODE_RESPONSE = 0U;
+        /**
+         * @brief A valid response from the SD card that it has received the issued 
+         * command, it verifies/ acknowledges it, and it is currently in idle state 
+         * (which means its running the initialization process)
+         */
+        SD_CARD_IN_IDLE_MODE_RESPONSE = 0x1,
+
+        SD_CARD_ILLEGAL_COMMAND = 0x5,
+
+        SD_CARD_ILLEGAL_COMMAND_AND_CRC_ERROR = 0xD,
+
+        SD_CARD_CHECK_PATTERN_ERROR = 0xFD,
+        SD_CARD_UNSUPPORTED_VOLTAGE = 0xFE,
+        SD_CARD_NO_RESPONSE = 0xFF
+
+    };
 
     /**
      * @brief Chip Select (C3) inactive high for pin PD3, this disables 
@@ -149,10 +172,10 @@ class SDCard
      * 
      * @param num_invalid_response_limit num of SPI_reads()'s to wait for a valid 
      * response
-     * @return true if command elicited a valid response
-     * @return false if command did not elicit a valid response
      */
-    bool send_cmd0(const uint16_t &num_invalid_response_limit) const;
+    sd_card_command_response_t send_cmd0(const uint16_t &num_invalid_response_limit) const;
+
+    sd_card_command_response_t send_cmd8(const uint16_t &num_invalid_response_limit) const;
 
     /**
      * @brief Stores the result of the initialize_sd_card() method, initial
@@ -167,6 +190,8 @@ class SDCard
      * has been succesfully initialized, else all the info will be 0xFFFF
      */
     BootSectorInformation boot_sector_information;
+
+    SDCardInformation sd_card_information;
 };
 } // namespace sd_driver
 
