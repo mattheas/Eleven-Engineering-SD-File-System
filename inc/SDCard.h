@@ -10,6 +10,7 @@
 #define _SDCARD_H_
 
 #include <SPI.h>
+#include <GPIO.h>
 
 namespace sd_driver
 {

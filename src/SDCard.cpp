@@ -16,6 +16,11 @@ SDCard::SDCard(const bool &configure_spi1)
     {
         SPI_set_config_optimal(_49_152_MHz, SPI1);
     }
+
+    // Set pin PD3 as an output, it is the Chip Select(CS) for the SD cards SPI
+    // interface. Pins are set as an output by setting a 1 in the position N+8,
+    // where N is the GPIO pin number
+    gpio_set_config((0x03 << 8), GPIO_D);
 }
 
 SDCard::~SDCard()
