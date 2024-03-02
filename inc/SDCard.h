@@ -1,5 +1,5 @@
 /**
- * @file SD.h
+ * @file SDCard.h
  * @author Mattheas Jamieson (mattheas@ualberta.ca)
  * @brief Declaration of SD card driver
  * @version 0.1
