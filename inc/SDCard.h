@@ -79,7 +79,7 @@ class SDCard
      *
      * @return initialization_result_t is a success, not available or failed
      */
-    initialization_result_t get_initialization_result();
+    initialization_result_t get_initialization_result() const;
 
     /**
      * @brief Get the boot sector information struct. Is only updated after the
@@ -88,7 +88,7 @@ class SDCard
      *
      * @return BootSectorInformation struct
      */
-    BootSectorInformation get_boot_sector_information();
+    BootSectorInformation get_boot_sector_information() const;
 
     /**
      * @brief Attmpets initialization of communication with SD card to put it in
