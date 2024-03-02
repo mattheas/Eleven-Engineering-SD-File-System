@@ -44,7 +44,7 @@ class SDCard
     {
         INIT_SUCCESS = 0, /**< initalization status was succesful, SD card is
                              ready to receive commands now */
-        INIT_FAILED,      /**< initialzation failed */
+        INIT_FAILED_ON_CMD0,      /**< initialzation failed on CMD0 */
         INIT_RESULT_NA    /**< initialization status is not available (NA)*/
     };
 
@@ -101,11 +101,58 @@ class SDCard
 
   private:
     /**
+     * @brief A valid response from the SD card that it has received the issued 
+     * command, it verifies/ acknowledges it, and it is currently in idle state 
+     * (which means its running the initialization process)
+     */
+    const uint16_t SD_CARD_IN_IDLE_MODE_RESPONSE = 1U;
+
+    /**
+     * @brief A valid response from the SD card that it has received the issued 
+     * command, it verifies/ acknowledges it, and it is NOT in the idle state 
+     * (which means its finished the initialization process succesfully)
+     */
+    const uint16_t SD_CARD_NOT_IN_IDLE_MODE_RESPONSE = 0U;
+
+    /**
+     * @brief Chip Select (C3) inactive high for pin PD3, this disables 
+     * communication over SPI1 for the SD card. This magic number comes from 
+     * 0x1 << 3, where 3 is the pin number in PD3.
+     */
+    const uint16_t CS_INACTIVE_HIGH = 0x8;
+
+    /**
+     * @brief Chip Select (C3) active low for pin PD3, this enables 
+     * communication over SPI1 for the SD card.
+     */
+    const uint16_t CS_ACTIVE_LOW = 0x0;
+
+    /**
+     * @brief After issuing a command an SD card can take 0-8 bytes to respond, 
+     * or 0-8 ticks of the SPI clock. This is that limit +2. If a valid response 
+     * for a command is not received within this limit it is assumed the SD card 
+     * will not return a valid response
+     */
+    const uint16_t NUM_INVALID_RESPONSE_LIMIT_SPI_READ = 10U;
+
+    /**
      * @brief Reads the boot sector information from the SD card,
      *
      * @return success status of reading the boot sector
      */
     bool read_boot_sector_information();
+
+    /**
+     * @brief Sends CMD0 to the SD card, after the command is sent it awaits a valid 
+     * response for a resposne limit amount of reads. CMD0 or GO_IDLE_STATE resets the 
+     * SD card and attempts to put the card in SPI mode.
+     * 
+     * @param num_invalid_response_limit num of SPI_reads()'s to wait for a valid 
+     * response
+     * @return true if command elicited a valid response
+     * @return false if command did not elicit a valid response
+     */
+    bool send_cmd0(const uint16_t &num_invalid_response_limit) const;
 
     /**
      * @brief Stores the result of the initialize_sd_card() method, initial

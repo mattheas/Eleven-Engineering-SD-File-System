@@ -39,10 +39,65 @@ SDCard::BootSectorInformation SDCard::get_boot_sector_information() const
 
 SDCard::initialization_result_t SDCard::initialize_sd_card()
 {
-    return initialization_result_t::INIT_RESULT_NA;
+    const uint16_t max_number_cmd0_commands_sent = 10U;
+
+    // write dummy value to SPI while CS is inactive/HIGH for at least 74 clock cycles
+    gpio_write(CS_INACTIVE_HIGH, GPIO_D);
+    for (uint16_t i = 0; i < 20; i++)
+    {
+        SPI_write(0xFF, SPI1);
+    }
+
+    // assert CS to start communication
+    gpio_write(CS_ACTIVE_LOW, GPIO_D);
+
+    bool valid_cmd0_response = false;
+    for (int i = 0; i < max_number_cmd0_commands_sent; i++)
+    {
+        if(send_cmd0(NUM_INVALID_RESPONSE_LIMIT_SPI_READ))
+        {
+            valid_cmd0_response = true;
+            break;
+        }
+        
+    }
+
+    // de-assert CS to end communication
+    gpio_write(CS_INACTIVE_HIGH, GPIO_D);
+    SPI_write(0xFF, SPI1);
+
+    // Stop initialization process if no or invalid response is received from CMD0
+    if (valid_cmd0_response == false)
+    {
+        return initialization_result_t::INIT_FAILED_ON_CMD0;
+    }
+
+    return initialization_result_t::INIT_SUCCESS;
 }
 
 bool SDCard::read_boot_sector_information()
 {
     return false;
+}
+
+bool SDCard::send_cmd0(const uint16_t &num_invalid_response_limit) const
+{
+    // Send 6-byte CMD0 command “40 00 00 00 00 95” to put the card in SPI mode
+    SPI_write(0x40, SPI1);
+    SPI_write(0x0, SPI1);
+    SPI_write(0x0, SPI1);
+    SPI_write(0x0, SPI1);
+    SPI_write(0x0, SPI1);
+    SPI_write(0x95, SPI1); // CRC7
+
+    for (uint16_t i = 0; i < num_invalid_response_limit; i++)
+    {
+        uint16_t spi_read_value = SPI_read(SPI1);
+        if (spi_read_value == SD_CARD_IN_IDLE_MODE_RESPONSE)
+        {
+            return true; // valid response, return true
+        }
+    }
+
+    return false; // no valid response, return false
 }
