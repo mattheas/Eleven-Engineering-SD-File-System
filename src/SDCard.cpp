@@ -84,8 +84,6 @@ SDCard::initialization_result_t SDCard::initialize_sd_card()
     // CMD8
     //================================================================================================================
     // assert CS to start communication
-    SPI_write(0xFF, SPI1);
-    SPI_write(0xFF, SPI1);
     gpio_write(CS_ACTIVE_LOW, GPIO_D);
 
     sd_card_command_response_t cmd8_response = send_cmd8(NUM_INVALID_RESPONSE_LIMIT_SPI_READ);
