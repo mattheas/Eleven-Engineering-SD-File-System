@@ -101,14 +101,21 @@ class SDCard
     initialization_result_t get_initialization_result() const;
 
     /**
-     * @brief Get the boot sector information struct. Is only updated after the
-     * SD card has been succesfully initialized, else all the info will be
-     * 0xFFFF
+     * @brief Get the boot sector information struct. The data is only valid after
+     * the information has been read from the boot sector (this only applies to 
+     * formatted SD cards) via the read_boot_sector_information() method. 
      *
      * @return BootSectorInformation struct
      */
     BootSectorInformation get_boot_sector_information() const;
 
+    /**
+     * @brief Get the sd card information struct. The data is only valid after
+     * the SD card has been succesfully intializied via the initialize_sd_card()
+     * method. Before that the data will be 0x0 or NA.
+     * 
+     * @return SDCardInformation struct
+     */
     SDCardInformation get_sd_card_information() const;
 
     /**
@@ -179,16 +186,37 @@ class SDCard
      * @brief Sends CMD0 to the SD card, after the command is sent it awaits a valid 
      * response for a resposne limit amount of reads. CMD0 or GO_IDLE_STATE resets the 
      * SD card and attempts to put the card in SPI mode.
-     * 
-     * @param num_invalid_response_limit num of SPI_reads()'s to wait for a valid 
-     * response
      */
     sd_card_command_response_t send_cmd0() const;
 
+    /**
+     * @brief Sends CMD8 to the SD card, this is an interface condition that defines the
+     * supported voltages (2.7-3.6V) along with a check pattern and asks the card if it 
+     * can operate in that supplied voltage range. If the SD card does support the voltage 
+     * range it should repeat back the command argument (voltages+pattern) in its response
+     * 
+     * @return sd_card_command_response_t SD cards response to the command
+     */
     sd_card_command_response_t send_cmd8() const;
 
+    /**
+     * @brief Sends CMD58 to the SD card, this command reads the contents of the OCR 
+     * register, saves it into an array, verifies that all voltages supported to 
+     * return that that the response was accepted. If the command is viewed as invalid
+     * by the SD card OR the OCR register contents does not support all voltages this 
+     * information is returned
+     * 
+     * @return sd_card_command_response_t SD cards response to the command
+     */
     sd_card_command_response_t send_cmd58();
 
+    /**
+     * @brief Sends CMD55 to the SD card, this command notifies the card that the next
+     * command it receives is an application specific command rather than a specific 
+     * command. 
+     * 
+     * @return sd_card_command_response_t SD cards response to the command
+     */
     sd_card_command_response_t send_cmd55() const;
 
     sd_card_command_response_t send_acmd41() const;
@@ -207,6 +235,10 @@ class SDCard
      */
     BootSectorInformation boot_sector_information;
 
+    /**
+     * @brief Information about the SD card that is agnostic to the formatting 
+     * of the SD card
+     */
     SDCardInformation sd_card_information;
 };
 } // namespace sd_driver
