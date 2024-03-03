@@ -138,9 +138,52 @@ SDCard::initialization_result_t SDCard::initialize_sd_card()
     SPI_write(0xFF, SPI1);
     //================================================================================================================
 
+    // CMD55 & ACMD41
+    //================================================================================================================
+    bool sd_card_in_idle_state = true;
+    
+    do{
+        // assert CS to start communication
+        gpio_write(CS_ACTIVE_LOW, GPIO_D);
 
+        sd_card_command_response_t cmd55_response = send_cmd55(NUM_INVALID_RESPONSE_LIMIT_SPI_READ);
 
+        if(cmd55_response == sd_card_command_response_t::SD_CARD_NO_RESPONSE)
+        {
+            // no response from SD card which is unlikely
+            return initialization_result_t::INIT_FAILED_ON_CMD55;
+        }
 
+        // de-assert CS to end communication
+        gpio_write(CS_INACTIVE_HIGH, GPIO_D);
+        SPI_write(0xFF, SPI1);
+
+        // assert CS to start communication
+        gpio_write(CS_ACTIVE_LOW, GPIO_D);
+
+        sd_card_command_response_t acmd41_response = send_acmd41(NUM_INVALID_RESPONSE_LIMIT_SPI_READ);
+
+        if (acmd41_response == sd_card_command_response_t::SD_CARD_NOT_IN_IDLE_MODE_RESPONSE)
+        {
+            // initialization is complete
+            sd_card_in_idle_state = false;
+        }
+        else if (acmd41_response == sd_card_command_response_t::SD_CARD_NO_RESPONSE)
+        {
+            return initialization_result_t::INIT_FAILED_ON_ACMD41;
+        }
+
+        // de-assert CS to end communication
+        gpio_write(CS_INACTIVE_HIGH, GPIO_D);
+        SPI_write(0xFF, SPI1);
+
+    } while (sd_card_in_idle_state);
+    //================================================================================================================
+
+    // CMD58 (only for V2.00)
+    //================================================================================================================
+
+    //================================================================================================================
 
     return initialization_result_t::INIT_SUCCESS;
 }
@@ -288,6 +331,63 @@ SDCard::sd_card_command_response_t SDCard::send_cmd58(const uint16_t &num_invali
 
         }
 
+    }
+
+    return sd_card_command_response_t::SD_CARD_NO_RESPONSE;
+}
+
+SDCard::sd_card_command_response_t SDCard::send_cmd55(const uint16_t &num_invalid_response_limit) const
+{
+    const uint16_t command_55 = 0x77;
+    const uint16_t crc_7 = 0x65; // crc7 of bytes 1-5 of command
+
+    SPI_write(command_55, SPI1);
+    SPI_write(0x0, SPI1);
+    SPI_write(0x0, SPI1);
+    SPI_write(0x0, SPI1);
+    SPI_write(0x0, SPI1);
+    SPI_write(crc_7, SPI1);
+
+    for (uint16_t i = 0; i < num_invalid_response_limit; i++)
+    {
+        uint16_t spi_read_value = SPI_read(SPI1);
+
+        if (spi_read_value == static_cast<uint16_t>(sd_card_command_response_t::SD_CARD_IN_IDLE_MODE_RESPONSE) || 
+            spi_read_value == static_cast<uint16_t>(sd_card_command_response_t::SD_CARD_NOT_IN_IDLE_MODE_RESPONSE))
+        {
+            return sd_card_command_response_t::SD_CARD_RESPONSE_ACCEPTED;
+        }
+    }
+
+    return sd_card_command_response_t::SD_CARD_NO_RESPONSE;
+}
+
+SDCard::sd_card_command_response_t SDCard::send_acmd41(const uint16_t &num_invalid_response_limit) const
+{
+    const uint16_t application_specific_command_41 = 0x69;
+    const uint16_t support_sdhc_sdxc_cards = 0x40;
+    const uint16_t crc_7 = 0x77; // crc7 of bytes 1-5 of command
+
+    // Send 6-byte ACMD41 command “0x69  40 00 00 00  77” to send host capacity support information and activate the card initialization process.
+    SPI_write(application_specific_command_41, SPI1);
+    SPI_write(support_sdhc_sdxc_cards, SPI1);
+    SPI_write(0x0, SPI1);
+    SPI_write(0x0, SPI1);
+    SPI_write(0x0, SPI1);
+    SPI_write(crc_7, SPI1);
+
+    for (uint16_t i = 0; i < num_invalid_response_limit; i++)
+    {
+        uint16_t spi_read_value = SPI_read(SPI1);
+
+        if (spi_read_value == static_cast<uint16_t>(sd_card_command_response_t::SD_CARD_IN_IDLE_MODE_RESPONSE))
+        {
+            return sd_card_command_response_t::SD_CARD_IN_IDLE_MODE_RESPONSE;
+        }
+        else if(spi_read_value == static_cast<uint16_t>(sd_card_command_response_t::SD_CARD_NOT_IN_IDLE_MODE_RESPONSE))
+        {
+            return sd_card_command_response_t::SD_CARD_NOT_IN_IDLE_MODE_RESPONSE;
+        }
     }
 
     return sd_card_command_response_t::SD_CARD_NO_RESPONSE;
