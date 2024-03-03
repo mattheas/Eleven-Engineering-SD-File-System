@@ -61,7 +61,7 @@ SDCard::initialization_result_t SDCard::initialize_sd_card()
     bool valid_cmd0_response = false;
     for (int i = 0; i < max_number_cmd0_commands_sent; i++)
     {
-        sd_card_command_response_t cmd0_response = send_cmd0(NUM_INVALID_RESPONSE_LIMIT_SPI_READ);
+        sd_card_command_response_t cmd0_response = send_cmd0();
         if(cmd0_response == sd_card_command_response_t::SD_CARD_IN_IDLE_MODE_RESPONSE)
         {
             valid_cmd0_response = true;
@@ -86,7 +86,7 @@ SDCard::initialization_result_t SDCard::initialize_sd_card()
     // assert CS to start communication
     gpio_write(CS_ACTIVE_LOW, GPIO_D);
 
-    sd_card_command_response_t cmd8_response = send_cmd8(NUM_INVALID_RESPONSE_LIMIT_SPI_READ);
+    sd_card_command_response_t cmd8_response = send_cmd8();
 
     if(cmd8_response == sd_card_command_response_t::SD_CARD_RESPONSE_ACCEPTED)
     {
@@ -114,7 +114,7 @@ SDCard::initialization_result_t SDCard::initialize_sd_card()
     // assert CS to start communication
     gpio_write(CS_ACTIVE_LOW, GPIO_D);
 
-    sd_card_command_response_t cmd58_response = send_cmd58(NUM_INVALID_RESPONSE_LIMIT_SPI_READ);
+    sd_card_command_response_t cmd58_response = send_cmd58();
 
     if(cmd58_response == sd_card_command_response_t::SD_CARD_ILLEGAL_COMMAND || 
             cmd58_response == sd_card_command_response_t::SD_CARD_ILLEGAL_COMMAND_AND_CRC_ERROR)
@@ -146,7 +146,7 @@ SDCard::initialization_result_t SDCard::initialize_sd_card()
         // assert CS to start communication
         gpio_write(CS_ACTIVE_LOW, GPIO_D);
 
-        sd_card_command_response_t cmd55_response = send_cmd55(NUM_INVALID_RESPONSE_LIMIT_SPI_READ);
+        sd_card_command_response_t cmd55_response = send_cmd55();
 
         if(cmd55_response == sd_card_command_response_t::SD_CARD_NO_RESPONSE)
         {
@@ -161,7 +161,7 @@ SDCard::initialization_result_t SDCard::initialize_sd_card()
         // assert CS to start communication
         gpio_write(CS_ACTIVE_LOW, GPIO_D);
 
-        sd_card_command_response_t acmd41_response = send_acmd41(NUM_INVALID_RESPONSE_LIMIT_SPI_READ);
+        sd_card_command_response_t acmd41_response = send_acmd41();
 
         if (acmd41_response == sd_card_command_response_t::SD_CARD_NOT_IN_IDLE_MODE_RESPONSE)
         {
@@ -193,7 +193,7 @@ bool SDCard::read_boot_sector_information()
     return false;
 }
 
-SDCard::sd_card_command_response_t SDCard::send_cmd0(const uint16_t &num_invalid_response_limit) const
+SDCard::sd_card_command_response_t SDCard::send_cmd0() const
 {
     const uint16_t command_0 = 0x40;
     const uint16_t crc_7 = 0x95; // crc7 of bytes 1-5 of command
@@ -206,7 +206,7 @@ SDCard::sd_card_command_response_t SDCard::send_cmd0(const uint16_t &num_invalid
     SPI_write(0x0, SPI1);
     SPI_write(crc_7, SPI1); // CRC7
 
-    for (uint16_t i = 0; i < num_invalid_response_limit; i++)
+    for (uint16_t i = 0; i < NUM_INVALID_RESPONSE_LIMIT_SPI_READ; i++)
     {
         uint16_t spi_read_value = SPI_read(SPI1);
 
@@ -219,7 +219,7 @@ SDCard::sd_card_command_response_t SDCard::send_cmd0(const uint16_t &num_invalid
     return sd_card_command_response_t::SD_CARD_NO_RESPONSE;
 }
 
-SDCard::sd_card_command_response_t SDCard::send_cmd8(const uint16_t &num_invalid_response_limit) const
+SDCard::sd_card_command_response_t SDCard::send_cmd8() const
 {
     const uint16_t command_8 = 0x48;
     const uint16_t supported_voltage_range = 0x1; // Indicates range 2.7V - 3.6V supported
@@ -234,7 +234,7 @@ SDCard::sd_card_command_response_t SDCard::send_cmd8(const uint16_t &num_invalid
     SPI_write(check_pattern, SPI1);
     SPI_write(crc_7, SPI1);
 
-    for (uint16_t i = 0; i < num_invalid_response_limit; i++)
+    for (uint16_t i = 0; i < NUM_INVALID_RESPONSE_LIMIT_SPI_READ; i++)
     {
         uint16_t spi_read_value = SPI_read(SPI1);
 
@@ -272,7 +272,7 @@ SDCard::sd_card_command_response_t SDCard::send_cmd8(const uint16_t &num_invalid
     return sd_card_command_response_t::SD_CARD_NO_RESPONSE;
 }
 
-SDCard::sd_card_command_response_t SDCard::send_cmd58(const uint16_t &num_invalid_response_limit) const
+SDCard::sd_card_command_response_t SDCard::send_cmd58() const
 {
     const uint16_t command_0 = 0x7A;
     const uint16_t crc_7 = 0xFD; // crc7 of bytes 1-5 of command
@@ -285,7 +285,7 @@ SDCard::sd_card_command_response_t SDCard::send_cmd58(const uint16_t &num_invali
     SPI_write(0x0, SPI1);
     SPI_write(crc_7, SPI1);
 
-    for (uint16_t i = 0; i < num_invalid_response_limit; i++)
+    for (uint16_t i = 0; i < NUM_INVALID_RESPONSE_LIMIT_SPI_READ; i++)
     {
         uint16_t spi_read_value = SPI_read(SPI1);
 
@@ -336,7 +336,7 @@ SDCard::sd_card_command_response_t SDCard::send_cmd58(const uint16_t &num_invali
     return sd_card_command_response_t::SD_CARD_NO_RESPONSE;
 }
 
-SDCard::sd_card_command_response_t SDCard::send_cmd55(const uint16_t &num_invalid_response_limit) const
+SDCard::sd_card_command_response_t SDCard::send_cmd55() const
 {
     const uint16_t command_55 = 0x77;
     const uint16_t crc_7 = 0x65; // crc7 of bytes 1-5 of command
@@ -348,7 +348,7 @@ SDCard::sd_card_command_response_t SDCard::send_cmd55(const uint16_t &num_invali
     SPI_write(0x0, SPI1);
     SPI_write(crc_7, SPI1);
 
-    for (uint16_t i = 0; i < num_invalid_response_limit; i++)
+    for (uint16_t i = 0; i < NUM_INVALID_RESPONSE_LIMIT_SPI_READ; i++)
     {
         uint16_t spi_read_value = SPI_read(SPI1);
 
@@ -362,7 +362,7 @@ SDCard::sd_card_command_response_t SDCard::send_cmd55(const uint16_t &num_invali
     return sd_card_command_response_t::SD_CARD_NO_RESPONSE;
 }
 
-SDCard::sd_card_command_response_t SDCard::send_acmd41(const uint16_t &num_invalid_response_limit) const
+SDCard::sd_card_command_response_t SDCard::send_acmd41() const
 {
     const uint16_t application_specific_command_41 = 0x69;
     const uint16_t support_sdhc_sdxc_cards = 0x40;
@@ -376,7 +376,7 @@ SDCard::sd_card_command_response_t SDCard::send_acmd41(const uint16_t &num_inval
     SPI_write(0x0, SPI1);
     SPI_write(crc_7, SPI1);
 
-    for (uint16_t i = 0; i < num_invalid_response_limit; i++)
+    for (uint16_t i = 0; i < NUM_INVALID_RESPONSE_LIMIT_SPI_READ; i++)
     {
         uint16_t spi_read_value = SPI_read(SPI1);
 

@@ -177,15 +177,15 @@ class SDCard
      * @param num_invalid_response_limit num of SPI_reads()'s to wait for a valid 
      * response
      */
-    sd_card_command_response_t send_cmd0(const uint16_t &num_invalid_response_limit) const;
+    sd_card_command_response_t send_cmd0() const;
 
-    sd_card_command_response_t send_cmd8(const uint16_t &num_invalid_response_limit) const;
+    sd_card_command_response_t send_cmd8() const;
 
-    sd_card_command_response_t send_cmd58(const uint16_t &num_invalid_response_limit) const;
+    sd_card_command_response_t send_cmd58() const;
 
-    sd_card_command_response_t send_cmd55(const uint16_t &num_invalid_response_limit) const;
+    sd_card_command_response_t send_cmd55() const;
 
-    sd_card_command_response_t send_acmd41(const uint16_t &num_invalid_response_limit) const;
+    sd_card_command_response_t send_acmd41() const;
 
     /**
      * @brief Stores the result of the initialize_sd_card() method, initial
