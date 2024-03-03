@@ -46,6 +46,7 @@ class SDCard
                              ready to receive commands now */
         INIT_FAILED_ON_CMD0,      /**< initialization failed on CMD0 */
         INIT_FAILED_ON_CMD8, /**< initialization failed on CMD8 */
+        INIT_FAILED_ON_CMD58, /**< initialization failed on CMD8 */
         INIT_RESULT_NA    /**< initialization status is not available (NA)*/
     };
 
@@ -131,8 +132,9 @@ class SDCard
 
         SD_CARD_ILLEGAL_COMMAND_AND_CRC_ERROR = 0xD,
 
-        SD_CARD_CHECK_PATTERN_ERROR = 0xFD,
-        SD_CARD_UNSUPPORTED_VOLTAGE = 0xFE,
+        SD_CARD_CHECK_PATTERN_ERROR = 0xFC,
+        SD_CARD_UNSUPPORTED_VOLTAGE = 0xFD,
+        SD_CARD_RESPONSE_ACCEPTED = 0xFE,
         SD_CARD_NO_RESPONSE = 0xFF
 
     };
@@ -176,6 +178,8 @@ class SDCard
     sd_card_command_response_t send_cmd0(const uint16_t &num_invalid_response_limit) const;
 
     sd_card_command_response_t send_cmd8(const uint16_t &num_invalid_response_limit) const;
+
+    sd_card_command_response_t send_cmd58(const uint16_t &num_invalid_response_limit) const;
 
     /**
      * @brief Stores the result of the initialize_sd_card() method, initial

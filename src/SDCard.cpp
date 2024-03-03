@@ -88,7 +88,7 @@ SDCard::initialization_result_t SDCard::initialize_sd_card()
 
     sd_card_command_response_t cmd8_response = send_cmd8(NUM_INVALID_RESPONSE_LIMIT_SPI_READ);
 
-    if(cmd8_response == sd_card_command_response_t::SD_CARD_IN_IDLE_MODE_RESPONSE)
+    if(cmd8_response == sd_card_command_response_t::SD_CARD_RESPONSE_ACCEPTED)
     {
         sd_card_information.sd_card_version = sd_card_version_t::VER_2;
     }
@@ -111,7 +111,31 @@ SDCard::initialization_result_t SDCard::initialize_sd_card()
 
     // CMD58
     //================================================================================================================
+    // assert CS to start communication
+    gpio_write(CS_ACTIVE_LOW, GPIO_D);
 
+    sd_card_command_response_t cmd58_response = send_cmd58(NUM_INVALID_RESPONSE_LIMIT_SPI_READ);
+
+    if(cmd58_response == sd_card_command_response_t::SD_CARD_ILLEGAL_COMMAND || 
+            cmd58_response == sd_card_command_response_t::SD_CARD_ILLEGAL_COMMAND_AND_CRC_ERROR)
+    {
+        // An illegal command and/ or CRC error on V1.x indicates this is not an SD card at all
+        return initialization_result_t::INIT_FAILED_ON_CMD58;
+    }
+    else if (cmd58_response == sd_card_command_response_t::SD_CARD_UNSUPPORTED_VOLTAGE)
+    {
+        // voltage unsupported so refrain from using SD card
+        return initialization_result_t::INIT_FAILED_ON_CMD58;
+    }
+    else if(cmd58_response == sd_card_command_response_t::SD_CARD_NO_RESPONSE)
+    {
+        // no response from SD card which is unlikely
+        return initialization_result_t::INIT_FAILED_ON_CMD58;
+    }
+
+    // de-assert CS to end communication
+    gpio_write(CS_INACTIVE_HIGH, GPIO_D);
+    SPI_write(0xFF, SPI1);
     //================================================================================================================
 
 
@@ -142,6 +166,7 @@ SDCard::sd_card_command_response_t SDCard::send_cmd0(const uint16_t &num_invalid
     for (uint16_t i = 0; i < num_invalid_response_limit; i++)
     {
         uint16_t spi_read_value = SPI_read(SPI1);
+
         if (spi_read_value == static_cast<uint16_t>(sd_card_command_response_t::SD_CARD_IN_IDLE_MODE_RESPONSE))
         {
             return sd_card_command_response_t::SD_CARD_IN_IDLE_MODE_RESPONSE;
@@ -169,6 +194,7 @@ SDCard::sd_card_command_response_t SDCard::send_cmd8(const uint16_t &num_invalid
     for (uint16_t i = 0; i < num_invalid_response_limit; i++)
     {
         uint16_t spi_read_value = SPI_read(SPI1);
+
         if (spi_read_value == static_cast<uint16_t>(sd_card_command_response_t::SD_CARD_IN_IDLE_MODE_RESPONSE))
         {
             // discard two unused bytes of response which should both be 0
@@ -187,7 +213,7 @@ SDCard::sd_card_command_response_t SDCard::send_cmd8(const uint16_t &num_invalid
                 return sd_card_command_response_t::SD_CARD_CHECK_PATTERN_ERROR;
             }
 
-            return sd_card_command_response_t::SD_CARD_IN_IDLE_MODE_RESPONSE;
+            return sd_card_command_response_t::SD_CARD_RESPONSE_ACCEPTED;
             
         }
         else if(spi_read_value == static_cast<uint16_t>(sd_card_command_response_t::SD_CARD_ILLEGAL_COMMAND))
@@ -198,6 +224,70 @@ SDCard::sd_card_command_response_t SDCard::send_cmd8(const uint16_t &num_invalid
         {
             return sd_card_command_response_t::SD_CARD_ILLEGAL_COMMAND_AND_CRC_ERROR;
         }
+    }
+
+    return sd_card_command_response_t::SD_CARD_NO_RESPONSE;
+}
+
+SDCard::sd_card_command_response_t SDCard::send_cmd58(const uint16_t &num_invalid_response_limit) const
+{
+    const uint16_t command_0 = 0x7A;
+    const uint16_t crc_7 = 0xFD; // crc7 of bytes 1-5 of command
+
+    // Send 6-byte CMD0 command “7A 00 00 00 00 FD” to read the OCR register
+    SPI_write(command_0, SPI1);
+    SPI_write(0x0, SPI1);
+    SPI_write(0x0, SPI1);
+    SPI_write(0x0, SPI1);
+    SPI_write(0x0, SPI1);
+    SPI_write(crc_7, SPI1);
+
+    for (uint16_t i = 0; i < num_invalid_response_limit; i++)
+    {
+        uint16_t spi_read_value = SPI_read(SPI1);
+
+        if(spi_read_value == static_cast<uint16_t>(sd_card_command_response_t::SD_CARD_ILLEGAL_COMMAND) 
+                && sd_card_information.sd_card_version == sd_card_version_t::VER_1)
+        {
+            return sd_card_command_response_t::SD_CARD_ILLEGAL_COMMAND;
+        }
+        else if(spi_read_value == static_cast<uint16_t>(sd_card_command_response_t::SD_CARD_ILLEGAL_COMMAND_AND_CRC_ERROR) 
+                && sd_card_information.sd_card_version == sd_card_version_t::VER_1)
+        {
+            return sd_card_command_response_t::SD_CARD_ILLEGAL_COMMAND_AND_CRC_ERROR;
+        }
+        else if (spi_read_value == static_cast<uint16_t>(sd_card_command_response_t::SD_CARD_IN_IDLE_MODE_RESPONSE))
+        {
+            // the 4 bytes after idle more response are the contents of the OCR register
+
+            // bits 31-24, contains CCS and power up status bit, not important yet
+            const uint16_t ocr_register_byte1 = SPI_read(SPI1);
+
+            // bits 23-16, all bits must be set, indicates voltage 2.8-3.6V supported
+            const uint16_t ocr_register_byte2 = SPI_read(SPI1);
+
+            //bits 15-8, bit 15 must be set as that indicates voltage 2.7-2.8V supported
+            const uint16_t ocr_register_byte3 = SPI_read(SPI1);
+
+            // bits 7-0, mostly reserved, of no importance
+            const uint16_t ocr_register_byte4 = SPI_read(SPI1);
+
+            // suppress unused variable warnings
+            (void)ocr_register_byte1;
+            (void)ocr_register_byte4;
+
+            if(ocr_register_byte2 == 0xFF && ocr_register_byte3 == 0x80)
+            {
+                // all voltage ranges are supported
+                return sd_card_command_response_t::SD_CARD_RESPONSE_ACCEPTED;
+            }
+            else
+            {
+                return sd_card_command_response_t::SD_CARD_UNSUPPORTED_VOLTAGE;
+            }
+
+        }
+
     }
 
     return sd_card_command_response_t::SD_CARD_NO_RESPONSE;
