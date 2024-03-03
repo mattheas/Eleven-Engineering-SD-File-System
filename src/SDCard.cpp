@@ -272,7 +272,7 @@ SDCard::sd_card_command_response_t SDCard::send_cmd8() const
     return sd_card_command_response_t::SD_CARD_NO_RESPONSE;
 }
 
-SDCard::sd_card_command_response_t SDCard::send_cmd58() const
+SDCard::sd_card_command_response_t SDCard::send_cmd58()
 {
     const uint16_t command_0 = 0x7A;
     const uint16_t crc_7 = 0xFD; // crc7 of bytes 1-5 of command
@@ -314,6 +314,12 @@ SDCard::sd_card_command_response_t SDCard::send_cmd58() const
 
             // bits 7-0, mostly reserved, of no importance
             const uint16_t ocr_register_byte4 = SPI_read(SPI1);
+
+            // save OCR register contents
+            sd_card_information.ocr_register_contents[0] = ocr_register_byte1;
+            sd_card_information.ocr_register_contents[1] = ocr_register_byte2;
+            sd_card_information.ocr_register_contents[2] = ocr_register_byte3;
+            sd_card_information.ocr_register_contents[3] = ocr_register_byte4;
 
             // suppress unused variable warnings
             (void)ocr_register_byte1;

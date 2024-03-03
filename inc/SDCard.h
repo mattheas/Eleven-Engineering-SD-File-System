@@ -85,6 +85,12 @@ class SDCard
     {
         sd_card_version_t sd_card_version = sd_card_version_t::VER_NA;
         sd_card_standard_t sd_card_standard = sd_card_standard_t::SDNA;
+
+        /**
+         * @brief Contents of SD card OCR register. Follows Big Endian format, i.e., 
+         * MSB is at index 0, LSB is at index 3.
+         */
+        uint16_t ocr_register_contents[4] = {0x0, 0x0, 0x0, 0x0};
     };
 
     /**
@@ -181,7 +187,7 @@ class SDCard
 
     sd_card_command_response_t send_cmd8() const;
 
-    sd_card_command_response_t send_cmd58() const;
+    sd_card_command_response_t send_cmd58();
 
     sd_card_command_response_t send_cmd55() const;
 
