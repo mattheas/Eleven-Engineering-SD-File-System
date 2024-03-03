@@ -208,7 +208,7 @@ SDCard::sd_card_command_response_t SDCard::send_cmd0() const
 
     for (uint16_t i = 0; i < NUM_INVALID_RESPONSE_LIMIT_SPI_READ; i++)
     {
-        uint16_t spi_read_value = SPI_read(SPI1);
+        const uint16_t spi_read_value = SPI_read(SPI1);
 
         if (spi_read_value == static_cast<uint16_t>(sd_card_command_response_t::SD_CARD_IN_IDLE_MODE_RESPONSE))
         {
@@ -236,7 +236,7 @@ SDCard::sd_card_command_response_t SDCard::send_cmd8() const
 
     for (uint16_t i = 0; i < NUM_INVALID_RESPONSE_LIMIT_SPI_READ; i++)
     {
-        uint16_t spi_read_value = SPI_read(SPI1);
+        const uint16_t spi_read_value = SPI_read(SPI1);
 
         if (spi_read_value == static_cast<uint16_t>(sd_card_command_response_t::SD_CARD_IN_IDLE_MODE_RESPONSE))
         {
@@ -287,7 +287,7 @@ SDCard::sd_card_command_response_t SDCard::send_cmd58()
 
     for (uint16_t i = 0; i < NUM_INVALID_RESPONSE_LIMIT_SPI_READ; i++)
     {
-        uint16_t spi_read_value = SPI_read(SPI1);
+        const uint16_t spi_read_value = SPI_read(SPI1);
 
         if(spi_read_value == static_cast<uint16_t>(sd_card_command_response_t::SD_CARD_ILLEGAL_COMMAND) 
                 && sd_card_information.sd_card_version == sd_card_version_t::VER_1)
@@ -356,7 +356,7 @@ SDCard::sd_card_command_response_t SDCard::send_cmd55() const
 
     for (uint16_t i = 0; i < NUM_INVALID_RESPONSE_LIMIT_SPI_READ; i++)
     {
-        uint16_t spi_read_value = SPI_read(SPI1);
+        const uint16_t spi_read_value = SPI_read(SPI1);
 
         if (spi_read_value == static_cast<uint16_t>(sd_card_command_response_t::SD_CARD_IN_IDLE_MODE_RESPONSE) || 
             spi_read_value == static_cast<uint16_t>(sd_card_command_response_t::SD_CARD_NOT_IN_IDLE_MODE_RESPONSE))
@@ -384,7 +384,7 @@ SDCard::sd_card_command_response_t SDCard::send_acmd41() const
 
     for (uint16_t i = 0; i < NUM_INVALID_RESPONSE_LIMIT_SPI_READ; i++)
     {
-        uint16_t spi_read_value = SPI_read(SPI1);
+        const uint16_t spi_read_value = SPI_read(SPI1);
 
         if (spi_read_value == static_cast<uint16_t>(sd_card_command_response_t::SD_CARD_IN_IDLE_MODE_RESPONSE))
         {
