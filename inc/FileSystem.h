@@ -40,14 +40,20 @@ class FileSystem
         FIXED_DISK = 0xF8
     };
 
+    /**
+     * @brief Primary Partition stores a primary partition from the Master Boot Sector (MBR)
+     * 
+     * @details For simplicity every byte is stored in its own uint16_t, while not efficient
+     * it's more readable.
+     */
     struct PrimaryPartition
     {
         uint16_t boot_flag;    // ignore
-        uint16_t chs_begin[2]; // ignore
+        uint16_t chs_begin[3]; // ignore
         uint16_t type_code;    // check to make sure its 0x0B or 0x0C
-        uint16_t chs_end[2];   // ignore
-        uint16_t lba_begin[2]; // adress of start of FAT32 file system, i.e., VolumeID
-        uint16_t number_of_sectors[2]; // ignore
+        uint16_t chs_end[3];   // ignore
+        uint16_t lba_begin[4]; // adress of start of FAT32 file system, i.e., VolumeID
+        uint16_t number_of_sectors[4]; // ignore
     };
 
     struct FAT32MasterBootRecord
