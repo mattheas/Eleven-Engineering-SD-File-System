@@ -432,3 +432,48 @@ SDCard::sd_card_command_response_t SDCard::send_acmd41() const
 
     return sd_card_command_response_t::SD_CARD_NO_RESPONSE;
 }
+
+SDCard::sd_card_command_response_t SDCard::send_cmd17(uint16_t (&block)[512], const uint16_t &block_addr_byte1, const uint16_t &block_addr_byte2, 
+                            const uint16_t &block_addr_byte3, const uint16_t &block_addr_byte4) const
+{
+    const uint16_t block_size_bytes = 512U;
+    const uint16_t command_17 = 0x51;
+    const uint16_t crc_7 = 0x00; // crc7 of bytes 1-5 of command
+
+    // Send 6-byte CMD17 command “0x51  XX XX XX XX 00” to read a block from sd card
+    SPI_write(command_17, SPI1);
+    SPI_write(block_addr_byte1, SPI1);
+    SPI_write(block_addr_byte2, SPI1);
+    SPI_write(block_addr_byte3, SPI1);
+    SPI_write(block_addr_byte4, SPI1);
+    SPI_write(crc_7, SPI1);
+
+    bool waiting_for_data = true;
+    uint16_t num_invalid_reads = 0U;
+    do{
+        const uint16_t spi_read_value = SPI_read(SPI1);
+
+        if (spi_read_value == 0xFE)
+        {
+            // exit loop when 0xFE is read, this indicates next byte is start of block
+            waiting_for_data = false;
+        }
+        else
+        {
+            num_invalid_reads++;
+            if (num_invalid_reads > NUM_INVALID_RESPONSE_LIMIT_SPI_READ)
+            {
+                // return early if num invalid read threshold is reached
+                return sd_card_command_response_t::SD_CARD_NO_RESPONSE;
+            }
+        }
+
+    }while(waiting_for_data);
+
+    for (uint16_t i = 0;  i < block_size_bytes; i++)
+    {
+        block[i] = SPI_read(SPI1);
+    }
+
+    return sd_card_command_response_t::SD_CARD_RESPONSE_ACCEPTED;
+}

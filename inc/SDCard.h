@@ -201,6 +201,24 @@ class SDCard
     sd_card_command_response_t send_acmd41() const;
 
     /**
+     * @brief Reads a block of the size selected by SET_BLOCKLEN command, note the data transferred
+     * shall not cross a physical block boundary unless READ_BLK_MISALIGN is set in the CSD.
+     * 
+     * NOTE: ASSUMES BLOCK LENGTH OF 512 bytes
+     * 
+     * TODO look into setting READ_BLK_MISALIGN!!!
+     * 
+     * @param num_bytes 
+     * @param block_addr_byte1 
+     * @param block_addr_byte2 
+     * @param block_addr_byte3 
+     * @param block_addr_byte4 
+     * @return sd_card_command_response_t 
+     */
+    sd_card_command_response_t send_cmd17(uint16_t (&block)[512], const uint16_t &block_addr_byte1, 
+                    const uint16_t &block_addr_byte2, const uint16_t &block_addr_byte3, const uint16_t &block_addr_byte4) const;
+
+    /**
      * @brief Stores the result of the initialize_sd_card() method, initial
      * value before method is called is INIT_RESULT_NA indicating the result is
      * unknown.
