@@ -108,13 +108,13 @@ SDCard::initialization_result_t SDCard::initialize_sd_card()
     gpio_write(CS_INACTIVE_HIGH, GPIO_D);
     SPI_write(0xFF, SPI1);
     //================================================================================================================
-
+    
     // CMD58
     //================================================================================================================
     // assert CS to start communication
     gpio_write(CS_ACTIVE_LOW, GPIO_D);
 
-    sd_card_command_response_t cmd58_response = send_cmd58();
+    sd_card_command_response_t cmd58_response = send_cmd58(true); // card should be in idle
 
     if(cmd58_response == sd_card_command_response_t::SD_CARD_ILLEGAL_COMMAND || 
             cmd58_response == sd_card_command_response_t::SD_CARD_ILLEGAL_COMMAND_AND_CRC_ERROR)
@@ -272,7 +272,7 @@ SDCard::sd_card_command_response_t SDCard::send_cmd8() const
     return sd_card_command_response_t::SD_CARD_NO_RESPONSE;
 }
 
-SDCard::sd_card_command_response_t SDCard::send_cmd58()
+SDCard::sd_card_command_response_t SDCard::send_cmd58(const bool &expected_in_idle)
 {
     const uint16_t command_0 = 0x7A;
     const uint16_t crc_7 = 0xFD; // crc7 of bytes 1-5 of command
@@ -299,7 +299,8 @@ SDCard::sd_card_command_response_t SDCard::send_cmd58()
         {
             return sd_card_command_response_t::SD_CARD_ILLEGAL_COMMAND_AND_CRC_ERROR;
         }
-        else if (spi_read_value == static_cast<uint16_t>(sd_card_command_response_t::SD_CARD_IN_IDLE_MODE_RESPONSE))
+        else if ((spi_read_value == static_cast<uint16_t>(sd_card_command_response_t::SD_CARD_IN_IDLE_MODE_RESPONSE) && expected_in_idle) ||
+                (spi_read_value == static_cast<uint16_t>(sd_card_command_response_t::SD_CARD_NOT_IN_IDLE_MODE_RESPONSE) && !expected_in_idle))
         {
             // the 4 bytes after idle more response are the contents of the OCR register
 

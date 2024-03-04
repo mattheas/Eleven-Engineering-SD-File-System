@@ -205,8 +205,12 @@ class SDCard
      * information is returned
      * 
      * @return sd_card_command_response_t SD cards response to the command
+     * 
+     * @param expected_in_idle when this command is issued if the SD card is expected
+     * to be in idle this should be set as the cards R1 response should be 0x1, compared
+     * to if the card is not expected to be in idle its response should be 0x0
      */
-    sd_card_command_response_t send_cmd58();
+    sd_card_command_response_t send_cmd58(const bool &expected_in_idle);
 
     /**
      * @brief Sends CMD55 to the SD card, this command notifies the card that the next
