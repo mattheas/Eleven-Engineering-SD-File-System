@@ -182,7 +182,50 @@ SDCard::initialization_result_t SDCard::initialize_sd_card()
 
     // CMD58 (only for V2.00)
     //================================================================================================================
+    if (sd_card_information.sd_card_version == sd_card_version_t::VER_1)
+    {
+        // Reaching this point, and its known its a V1.X guarantees SDSC standard
+        sd_card_information.sd_card_standard = sd_card_standard_t::SDSC;
+    }
+    else if (sd_card_information.sd_card_version == sd_card_version_t::VER_2)
+    {
+        sd_card_information.sd_card_version = sd_card_version_t::VER_2;
 
+        // assert CS to start communication
+        gpio_write(CS_ACTIVE_LOW, GPIO_D);
+
+        sd_card_command_response_t cmd58_response = send_cmd58(false); // card should no longer be in idle
+
+        if(cmd58_response == sd_card_command_response_t::SD_CARD_ILLEGAL_COMMAND || 
+                cmd58_response == sd_card_command_response_t::SD_CARD_ILLEGAL_COMMAND_AND_CRC_ERROR)
+        {
+            // An illegal command and/ or CRC error on V1.x indicates this is not an SD card at all
+            return initialization_result_t::INIT_FAILED_ON_CMD58;
+        }
+        else if (cmd58_response == sd_card_command_response_t::SD_CARD_UNSUPPORTED_VOLTAGE)
+        {
+            // voltage unsupported so refrain from using SD card
+            return initialization_result_t::INIT_FAILED_ON_CMD58;
+        }
+        else if(cmd58_response == sd_card_command_response_t::SD_CARD_NO_RESPONSE)
+        {
+            // no response from SD card which is unlikely
+            return initialization_result_t::INIT_FAILED_ON_CMD58;
+        }
+
+        // de-assert CS to end communication
+        gpio_write(CS_INACTIVE_HIGH, GPIO_D);
+        SPI_write(0xFF, SPI1);
+
+        // check CCS bit of OCR register to determine sd card standard  of V2.00 or later card
+        if (sd_card_information.ocr_register_contents[0] & (1 << 6))
+        {
+            sd_card_information.sd_card_standard = sd_card_standard_t::SDHC_OR_SDXC;
+        } else 
+        {
+            sd_card_information.sd_card_standard = sd_card_standard_t::SDSC;
+        }
+    }
     //================================================================================================================
 
     return initialization_result_t::INIT_SUCCESS;
