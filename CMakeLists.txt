@@ -22,15 +22,22 @@ add_to_py_exec_path(libspine_PY_DIRS)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__DISABLE_SOFTWARE_DIVIDE__")
 
+# List of additional source files
+set(SOURCE_FILES
+    SDCard.cpp
+    FileSystem.cpp
+)
+
 build_executable(
   ${PROJECT_NAME}
   ${PROJECT_SOURCE_DIR}
   ${PROJECT_BINARY_DIR}
+  ${SOURCE_FILES}
   empty_var
   PY_FILES
 )
 sxc_firmware_obj_to_hex(
-  ${PROJECT_NAME} ${PROJECT_SOURCE_DIR}/main.gen empty_var empty_var hex_target
+  ${PROJECT_NAME} ${PROJECT_SOURCE_DIR}/main.gen ${SOURCE_FILES} empty_var empty_var hex_target
 )
 add_custom_target(${PROJECT_NAME}-hex-final ALL
   DEPENDS ${hex_target}
