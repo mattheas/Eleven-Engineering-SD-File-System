@@ -52,6 +52,33 @@ class SDCard
         INIT_RESULT_NA    /**< initialization status is not available (NA)*/
     };
 
+    enum class sd_card_command_response_t
+    {
+        /**
+         * @brief A valid response from the SD card that it has received the issued 
+         * command, it verifies/ acknowledges it, and it is NOT in the idle state 
+         * (which means its finished the initialization process succesfully)
+         */
+        SD_CARD_NOT_IN_IDLE_MODE_RESPONSE = 0x0,
+
+        /**
+         * @brief A valid response from the SD card that it has received the issued 
+         * command, it verifies/ acknowledges it, and it is currently in idle state 
+         * (which means its running the initialization process)
+         */
+        SD_CARD_IN_IDLE_MODE_RESPONSE = 0x1,
+
+        SD_CARD_ILLEGAL_COMMAND = 0x5,
+
+        SD_CARD_ILLEGAL_COMMAND_AND_CRC_ERROR = 0xD,
+
+        SD_CARD_CHECK_PATTERN_ERROR = 0xFC,
+        SD_CARD_UNSUPPORTED_VOLTAGE = 0xFD,
+        SD_CARD_RESPONSE_ACCEPTED = 0xFE,
+        SD_CARD_NO_RESPONSE = 0xFF
+
+    };
+
     /**
      * @brief Enumerates the different SD card versions a card can have
      */
@@ -108,34 +135,25 @@ class SDCard
      */
     initialization_result_t initialize_sd_card();
 
+    /**
+     * @brief Reads a block of the size selected by SET_BLOCKLEN command, note the data transferred
+     * shall not cross a physical block boundary unless READ_BLK_MISALIGN is set in the CSD.
+     * 
+     * NOTE: ASSUMES BLOCK LENGTH OF 512 bytes
+     * 
+     * TODO look into setting READ_BLK_MISALIGN!!!
+     * 
+     * @param num_bytes 
+     * @param block_addr_byte1 
+     * @param block_addr_byte2 
+     * @param block_addr_byte3 
+     * @param block_addr_byte4 
+     * @return sd_card_command_response_t 
+     */
+    sd_card_command_response_t send_cmd17(uint16_t (&block)[512], const uint16_t &block_addr_byte1, 
+                    const uint16_t &block_addr_byte2, const uint16_t &block_addr_byte3, const uint16_t &block_addr_byte4) const;
+
   private:
-    enum class sd_card_command_response_t
-    {
-        /**
-         * @brief A valid response from the SD card that it has received the issued 
-         * command, it verifies/ acknowledges it, and it is NOT in the idle state 
-         * (which means its finished the initialization process succesfully)
-         */
-        SD_CARD_NOT_IN_IDLE_MODE_RESPONSE = 0x0,
-
-        /**
-         * @brief A valid response from the SD card that it has received the issued 
-         * command, it verifies/ acknowledges it, and it is currently in idle state 
-         * (which means its running the initialization process)
-         */
-        SD_CARD_IN_IDLE_MODE_RESPONSE = 0x1,
-
-        SD_CARD_ILLEGAL_COMMAND = 0x5,
-
-        SD_CARD_ILLEGAL_COMMAND_AND_CRC_ERROR = 0xD,
-
-        SD_CARD_CHECK_PATTERN_ERROR = 0xFC,
-        SD_CARD_UNSUPPORTED_VOLTAGE = 0xFD,
-        SD_CARD_RESPONSE_ACCEPTED = 0xFE,
-        SD_CARD_NO_RESPONSE = 0xFF
-
-    };
-
     /**
      * @brief Chip Select (C3) inactive high for pin PD3, this disables 
      * communication over SPI1 for the SD card. This magic number comes from 
@@ -201,24 +219,6 @@ class SDCard
     sd_card_command_response_t send_acmd41() const;
 
     /**
-     * @brief Reads a block of the size selected by SET_BLOCKLEN command, note the data transferred
-     * shall not cross a physical block boundary unless READ_BLK_MISALIGN is set in the CSD.
-     * 
-     * NOTE: ASSUMES BLOCK LENGTH OF 512 bytes
-     * 
-     * TODO look into setting READ_BLK_MISALIGN!!!
-     * 
-     * @param num_bytes 
-     * @param block_addr_byte1 
-     * @param block_addr_byte2 
-     * @param block_addr_byte3 
-     * @param block_addr_byte4 
-     * @return sd_card_command_response_t 
-     */
-    sd_card_command_response_t send_cmd17(uint16_t (&block)[512], const uint16_t &block_addr_byte1, 
-                    const uint16_t &block_addr_byte2, const uint16_t &block_addr_byte3, const uint16_t &block_addr_byte4) const;
-
-    /**
      * @brief Stores the result of the initialize_sd_card() method, initial
      * value before method is called is INIT_RESULT_NA indicating the result is
      * unknown.
@@ -231,6 +231,7 @@ class SDCard
      * of the SD card
      */
     SDCardInformation sd_card_information;
+
 };
 } // namespace sd_driver
 
