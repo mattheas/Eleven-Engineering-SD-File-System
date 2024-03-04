@@ -440,6 +440,9 @@ SDCard::sd_card_command_response_t SDCard::send_cmd17(uint16_t (&block)[512], co
     const uint16_t command_17 = 0x51;
     const uint16_t crc_7 = 0x00; // crc7 of bytes 1-5 of command
 
+    // assert CS to start communication
+    gpio_write(CS_ACTIVE_LOW, GPIO_D);
+
     // Send 6-byte CMD17 command “0x51  XX XX XX XX 00” to read a block from sd card
     SPI_write(command_17, SPI1);
     SPI_write(block_addr_byte1, SPI1);
@@ -463,6 +466,10 @@ SDCard::sd_card_command_response_t SDCard::send_cmd17(uint16_t (&block)[512], co
             num_invalid_reads++;
             if (num_invalid_reads > NUM_INVALID_RESPONSE_LIMIT_SPI_READ)
             {
+                // de-assert CS to end communication
+                gpio_write(CS_INACTIVE_HIGH, GPIO_D);
+                SPI_write(0xFF, SPI1);
+
                 // return early if num invalid read threshold is reached
                 return sd_card_command_response_t::SD_CARD_NO_RESPONSE;
             }
@@ -474,6 +481,10 @@ SDCard::sd_card_command_response_t SDCard::send_cmd17(uint16_t (&block)[512], co
     {
         block[i] = SPI_read(SPI1);
     }
+
+    // de-assert CS to end communication
+    gpio_write(CS_INACTIVE_HIGH, GPIO_D);
+    SPI_write(0xFF, SPI1);
 
     return sd_card_command_response_t::SD_CARD_RESPONSE_ACCEPTED;
 }
