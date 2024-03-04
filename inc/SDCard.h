@@ -67,11 +67,9 @@ class SDCard
      */
     enum class sd_card_standard_t
     {
-        SDSC = 0, /**< Capacity of <2GB */
-        SDHC,     /**< Capacity between 2GB and 32GB */
-        SDXC,     /**< Capacity between 32GB and 2TB */
-        SDUC,     /**< Capacity between 2TB and 128 TB */
-        SDNA      /**< SD standard not available */
+        SDSC = 0,       /**< Capacity of <2GB */
+        SDHC_OR_SDXC,   /**< Capacity between 2GB and 32GB, or 32GB and 2TB */
+        SDNA            /**< SD standard not available */
     };
 
     /**
