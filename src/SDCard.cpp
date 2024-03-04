@@ -32,11 +32,6 @@ SDCard::initialization_result_t SDCard::get_initialization_result() const
     return initialization_result;
 }
 
-SDCard::BootSectorInformation SDCard::get_boot_sector_information() const
-{
-    return boot_sector_information;
-}
-
 SDCard::SDCardInformation SDCard::get_sd_card_information() const
 {
     return sd_card_information;
@@ -229,11 +224,6 @@ SDCard::initialization_result_t SDCard::initialize_sd_card()
     //================================================================================================================
 
     return initialization_result_t::INIT_SUCCESS;
-}
-
-bool SDCard::read_boot_sector_information()
-{
-    return false;
 }
 
 SDCard::sd_card_command_response_t SDCard::send_cmd0() const

@@ -72,13 +72,6 @@ class SDCard
         SDNA            /**< SD standard not available */
     };
 
-    /**
-     * @brief Struct representing the boot sector information of the SD card.
-     */
-    struct BootSectorInformation
-    {
-    };
-
     struct SDCardInformation
     {
         sd_card_version_t sd_card_version = sd_card_version_t::VER_NA;
@@ -97,15 +90,6 @@ class SDCard
      * @return initialization_result_t is a success, not available or failed
      */
     initialization_result_t get_initialization_result() const;
-
-    /**
-     * @brief Get the boot sector information struct. The data is only valid after
-     * the information has been read from the boot sector (this only applies to 
-     * formatted SD cards) via the read_boot_sector_information() method. 
-     *
-     * @return BootSectorInformation struct
-     */
-    BootSectorInformation get_boot_sector_information() const;
 
     /**
      * @brief Get the sd card information struct. The data is only valid after
@@ -174,13 +158,6 @@ class SDCard
     const uint16_t NUM_INVALID_RESPONSE_LIMIT_SPI_READ = 10U;
 
     /**
-     * @brief Reads the boot sector information from the SD card,
-     *
-     * @return success status of reading the boot sector
-     */
-    bool read_boot_sector_information();
-
-    /**
      * @brief Sends CMD0 to the SD card, after the command is sent it awaits a valid 
      * response for a resposne limit amount of reads. CMD0 or GO_IDLE_STATE resets the 
      * SD card and attempts to put the card in SPI mode.
@@ -230,12 +207,6 @@ class SDCard
      */
     initialization_result_t initialization_result =
         initialization_result_t::INIT_RESULT_NA;
-
-    /**
-     * @brief Stores boot sector information. Is only updated after the SD card
-     * has been succesfully initialized, else all the info will be 0xFFFF
-     */
-    BootSectorInformation boot_sector_information;
 
     /**
      * @brief Information about the SD card that is agnostic to the formatting 
