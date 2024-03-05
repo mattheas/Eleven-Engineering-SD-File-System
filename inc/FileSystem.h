@@ -130,6 +130,20 @@ class FileSystem
      */
     bool read_fat_32_volume_id(const uint16_t lba_begin_byte1, const uint16_t lba_begin_byte2, const uint16_t lba_begin_byte3, const uint16_t lba_begin_byte4);
 
+    /**
+     * @brief Helper function to add 4 byte numbers. i.e., add together two numbers, each of 4 bytes
+     * 
+     * @details Assumes that every uint16_t can store at most 0xFF, anything greater introduces a carry.
+     * Additionally, any two numbers when added together that produce a carry on the MSB will be discarded.
+     * i.e,. the max number returned is 0x FF FF FF FF
+     * 
+     * Numbers are expected to be in Big Endian format where byte 1 is the MSB
+     */
+    void add_4_byte_numbers(const uint16_t &num1_byte1, const uint16_t &num1_byte2, const uint16_t &num1_byte3, const uint16_t &num1_byte4,
+                        const uint16_t &num2_byte1, const uint16_t &num2_byte2, const uint16_t &num2_byte3, const uint16_t &num2_byte4,
+                        uint16_t &result_byte1, uint16_t &result_byte2, uint16_t &result_byte3, uint16_t &result_byte4);
+
+
     sd_driver::SDCard &sd_card;
 
     const file_system_t &file_system_type;
