@@ -7,6 +7,7 @@
  */
 
 #include "../inc/SDCard.h"
+#include <XPD.h>
 
 using namespace sd_driver;
 
@@ -464,7 +465,7 @@ SDCard::sd_card_command_response_t SDCard::send_cmd17(uint16_t (&block)[512], co
         else
         {
             num_invalid_reads++;
-            if (num_invalid_reads > NUM_INVALID_RESPONSE_LIMIT_SPI_READ)
+            if (num_invalid_reads > 1000)
             {
                 // de-assert CS to end communication
                 gpio_write(CS_INACTIVE_HIGH, GPIO_D);
