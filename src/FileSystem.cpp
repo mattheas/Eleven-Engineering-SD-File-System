@@ -73,6 +73,7 @@ bool FileSystem::read_fat32_master_boot_record()
 
         // TODO read other 3 partitions
 
+        // TODO check if its a guarantee that partition 1 is guarnteed to have FAT32
         // Check that type code and signature are valid
         if ((fat_32_master_boot_record.primary_partition_1.type_code == 0xB ||
             fat_32_master_boot_record.primary_partition_1.type_code == 0xC) && 
