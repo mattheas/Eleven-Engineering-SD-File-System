@@ -73,14 +73,17 @@ bool FileSystem::read_fat32_master_boot_record()
         fat_32_master_boot_record.mbr_signature[0] = mbr_512_byte_sector[510];
         fat_32_master_boot_record.mbr_signature[1] = mbr_512_byte_sector[511];
 
+        // verify signature, check both ordering since documentation is often mixed
+        const bool valid_signature = (fat_32_master_boot_record.mbr_signature[0] == 0x55 && fat_32_master_boot_record.mbr_signature[1] == 0xAA) ||
+                                    (fat_32_master_boot_record.mbr_signature[0] == 0xAA && fat_32_master_boot_record.mbr_signature[1] == 0x55);
+
         // TODO read other 3 partitions
 
         // TODO check if its a guarantee that partition 1 is guarnteed to have FAT32
         // Check that type code and signature are valid
         if ((fat_32_master_boot_record.primary_partition_1.type_code == 0xB ||
             fat_32_master_boot_record.primary_partition_1.type_code == 0xC) && 
-            fat_32_master_boot_record.mbr_signature[0] == 0x55 && 
-            fat_32_master_boot_record.mbr_signature[1] == 0xAA)
+            valid_signature)
         {
             return true;    
         }
@@ -202,7 +205,7 @@ void FileSystem::add_4_byte_numbers(const uint16_t &num1_byte1, const uint16_t &
                         uint16_t &result_byte1, uint16_t &result_byte2, uint16_t &result_byte3, uint16_t &result_byte4)
 {
     // TODO refactor to optimize 
-    
+
     uint16_t carry_byte4 = 0;
     result_byte4 = num1_byte4 + num2_byte4;
 
