@@ -16,9 +16,10 @@ FileSystem::FileSystem(sd_driver::SDCard &_sd_card, const file_system_t &_file_s
     // Initialize SD card if its not already initalized
 
     // read MBR
-    read_fat32_master_boot_record();
+    read_fat32_master_boot_record(); 
 
     // read VolumeID
+    read_fat_32_volume_id(fat_32_master_boot_record.primary_partition_1.lba_begin[3], fat_32_master_boot_record.primary_partition_1.lba_begin[2], fat_32_master_boot_record.primary_partition_1.lba_begin[1], fat_32_master_boot_record.primary_partition_1.lba_begin[0]);
 }
 
 FileSystem::~FileSystem()
@@ -88,7 +89,109 @@ bool FileSystem::read_fat32_master_boot_record()
     return false;
 }
 
-bool FileSystem::read_fat_32_volume_id()
+bool FileSystem::read_fat_32_volume_id(const uint16_t lba_begin_byte1, const uint16_t lba_begin_byte2, const uint16_t lba_begin_byte3, const uint16_t lba_begin_byte4)
 {
-    return false;
+    uint16_t volume_id_sector[512];
+    sd_driver::SDCard::sd_card_command_response_t cmd17_response;
+
+    cmd17_response = sd_card.send_cmd17(volume_id_sector, lba_begin_byte1, lba_begin_byte2, lba_begin_byte3, lba_begin_byte4);
+
+    for (uint16_t i = 0; i<3; i++)
+    {
+        fat_32_volume_id.jmp_to_boot_code[i] = volume_id_sector[i];
+    }
+
+    for (uint16_t i = 3; i<11; i++)
+    {
+        fat_32_volume_id.oem_name_ascii[i] = volume_id_sector[i];
+    }
+
+    // Together should be Byte0 + Byte1 == 512 bytes per sector
+    //be careful b/c bytes are 02 and 00 in decimal which needs to be converted to hex 0x200 which is then 512
+    fat_32_volume_id.bytes_per_sector[0] = volume_id_sector[11];
+    fat_32_volume_id.bytes_per_sector[1] = volume_id_sector[12];
+
+    fat_32_volume_id.sectors_per_cluster = volume_id_sector[13];
+
+    fat_32_volume_id.size_of_reserved_area_sectors[0] = volume_id_sector[14];
+    fat_32_volume_id.size_of_reserved_area_sectors[1] = volume_id_sector[15];
+
+    // usually 2 fats
+    fat_32_volume_id.number_of_fats = volume_id_sector[16];
+
+    // should be zero for FAT 32
+    fat_32_volume_id.max_num_files_in_root_dir[0] = volume_id_sector[17];
+    fat_32_volume_id.max_num_files_in_root_dir[1] = volume_id_sector[18];
+
+    // if ZERO check the extended 4 byte field
+    fat_32_volume_id.number_of_sectors_in_file_system[0] = volume_id_sector[19];
+    fat_32_volume_id.number_of_sectors_in_file_system[1] = volume_id_sector[20];
+
+    if (volume_id_sector[21] == static_cast<uint16_t>(media_type_t::REMOVABLE_DISK))
+    {
+        fat_32_volume_id.media_type = media_type_t::REMOVABLE_DISK;
+    }
+    else if (volume_id_sector[21] == static_cast<uint16_t>(media_type_t::FIXED_DISK))
+    {
+        fat_32_volume_id.media_type = media_type_t::FIXED_DISK;
+    }
+
+    // Should be 0 for FAT32
+    fat_32_volume_id.size_of_each_fat_in_sectors[0] = volume_id_sector[22];
+    fat_32_volume_id.size_of_each_fat_in_sectors[1] = volume_id_sector[23];
+        
+    fat_32_volume_id.sectors_per_track_in_storage_device[0] = volume_id_sector[24];
+    fat_32_volume_id.sectors_per_track_in_storage_device[1] = volume_id_sector[25];        
+
+    fat_32_volume_id.num_heads_in_storage_device[0] = volume_id_sector[26];
+    fat_32_volume_id.num_heads_in_storage_device[1] = volume_id_sector[27];
+
+    fat_32_volume_id.num_of_sectors_before_start_partition[0] = volume_id_sector[28];
+    fat_32_volume_id.num_of_sectors_before_start_partition[1] = volume_id_sector[29];
+    fat_32_volume_id.num_of_sectors_before_start_partition[2] = volume_id_sector[30];
+    fat_32_volume_id.num_of_sectors_before_start_partition[3] = volume_id_sector[31];
+        
+    // Will be 0 if the 2 byte field above is non-zero (bytes 19-20)
+    fat_32_volume_id.num_of_sectors_in_file_system_extended[0] = volume_id_sector[32];
+    fat_32_volume_id.num_of_sectors_in_file_system_extended[1] = volume_id_sector[33];
+    fat_32_volume_id.num_of_sectors_in_file_system_extended[2] = volume_id_sector[34];
+    fat_32_volume_id.num_of_sectors_in_file_system_extended[3] = volume_id_sector[35];
+
+    fat_32_volume_id.sectors_per_fat[0] = volume_id_sector[36];
+    fat_32_volume_id.sectors_per_fat[1] = volume_id_sector[37];
+    fat_32_volume_id.sectors_per_fat[2] = volume_id_sector[38];
+    fat_32_volume_id.sectors_per_fat[3] = volume_id_sector[39];
+
+    // usually 2 
+    fat_32_volume_id.root_directory_first_cluster[0] = volume_id_sector[44];
+    fat_32_volume_id.root_directory_first_cluster[1] = volume_id_sector[45];
+    fat_32_volume_id.root_directory_first_cluster[2] = volume_id_sector[46];
+    fat_32_volume_id.root_directory_first_cluster[3] = volume_id_sector[47];
+    
+    // signature value should be 0x55AA or 0xAA55(if done backwards)
+    fat_32_volume_id.volume_id_signature[0] = volume_id_sector[510];
+    fat_32_volume_id.volume_id_signature[1] = volume_id_sector[511];
+
+    // verify signature, check both ordering since documentation is often mixed
+    const bool valid_signature = (fat_32_volume_id.volume_id_signature[0] == 0x55 && fat_32_volume_id.volume_id_signature[1] == 0xAA) ||
+                                    (fat_32_volume_id.volume_id_signature[0] == 0xAA && fat_32_volume_id.volume_id_signature[1] == 0x55);
+
+    //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    // TODO put values into Big Endian format !!!!!!!!!!!!!!!!!!
+
+    // print all values
+    // xpd_puts("sectors per fat\n");
+    // for (uint16_t i=36; i<40;i++){
+    //     xpd_echo_int(volume_id_sector[i], XPD_Flag_UnsignedDecimal); // 0x1 GOOD
+    // xpd_putc('\n');
+    // }
+    // xpd_putc('\n');
+
+    // xpd_puts("root directoy first cluster\n");
+    // for (uint16_t i=44; i<48;i++){
+    //     xpd_echo_int(volume_id_sector[i], XPD_Flag_UnsignedDecimal); // 0x1 GOOD
+    // xpd_putc('\n');
+    // }
+
+    return valid_signature;
 }

@@ -48,7 +48,7 @@ class FileSystem
      */
     struct PrimaryPartition
     {
-        uint16_t boot_flag;    // ignore
+        uint16_t boot_flag;    // ignore (0x80 active?, 0x00 inactive?)
         uint16_t chs_begin[3]; // ignore
         uint16_t type_code;    // check to make sure its 0x0B or 0x0C
         uint16_t chs_end[3];   // ignore
@@ -79,24 +79,33 @@ class FileSystem
         uint16_t mbr_signature[2]; // should be 0x55AA, always check this
     };
 
+    /**
+     * @brief Volume ID that stores information about the FAT32 file system
+     * 
+     * @details For simplicity every byte is stored in its own uint16_t, while not efficient
+     * it's more readable. REMEMBER reading multibyte values from SD card are in Little Endian,
+     * i.e., 
+     */
     struct FAT32VolumeID
     {
-        uint16_t jmp_to_boot_code;
+        uint16_t jmp_to_boot_code[3];
         uint16_t oem_name_ascii[8];
-        uint16_t bytes_per_sector; // always 512 in FAT32?
+        uint16_t bytes_per_sector[2]; // always 512 in FAT32?
         uint16_t sectors_per_cluster;
-        uint16_t size_of_reserved_area_sectors;
+        uint16_t size_of_reserved_area_sectors[2];
         uint16_t number_of_fats; // usually 2
-        uint16_t max_num_files_in_root_dir; // 0 for FAT32
-        uint16_t number_of_sectors_in_file_system; // if 0 then see 4 bytes in bytes 32-25
+        uint16_t max_num_files_in_root_dir[2]; // 0 for FAT32
+        uint16_t number_of_sectors_in_file_system[2]; // if 0 then see 4 bytes in bytes 32-25
         media_type_t media_type;
-        uint16_t size_of_each_fat_in_sectors; // 0 for FAT32?
-        uint16_t sectors_per_track_in_storage_device;
-        uint16_t num_heads_in_storage_device;
-        uint16_t num_of_sectors_before_start_partition[2];
-        uint16_t num_of_sectors_in_file_system_extended[2]; // 0 if 2B filed above is non zero
+        uint16_t size_of_each_fat_in_sectors[2]; // 0 for FAT32?
+        uint16_t sectors_per_track_in_storage_device[2];
+        uint16_t num_heads_in_storage_device[2];
+        uint16_t num_of_sectors_before_start_partition[4];
+        uint16_t num_of_sectors_in_file_system_extended[4]; // 0 if 2B filed above is non zero
+        uint16_t sectors_per_fat[4];
+        uint16_t root_directory_first_cluster[4]; // usually 2
 
-        uint16_t volume_id_signature; // ?????????
+        uint16_t volume_id_signature[2]; // should be 0x55AA or 0xAA55
     };
 
     FAT32MasterBootRecord get_fat_32_master_boot_record() const;
@@ -106,7 +115,20 @@ class FileSystem
   private:
     bool read_fat32_master_boot_record();
 
-    bool read_fat_32_volume_id();
+    /**
+     * @brief reads the volume id, which should be the first sector of the file system
+     * 
+     * @details The bytes should be passed in Big Endian format, i.e., how you would normally
+     * read a number from left to right
+     * 
+     * @param lba_begin_byte1 Most Significant Byte(MSB) of address
+     * @param lba_begin_byte2 
+     * @param lba_begin_byte3 
+     * @param lba_begin_byte4 Least Significant Byte(LSB) of address
+     * @return true 
+     * @return false 
+     */
+    bool read_fat_32_volume_id(const uint16_t lba_begin_byte1, const uint16_t lba_begin_byte2, const uint16_t lba_begin_byte3, const uint16_t lba_begin_byte4);
 
     sd_driver::SDCard &sd_card;
 
