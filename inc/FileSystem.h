@@ -70,6 +70,8 @@ class FileSystem
     struct FAT32MasterBootRecord
     {
         // 446 bytes of Boot Code ignored
+
+        // TODO make an array of partitions, also read them all in read_fat32_master_boot_record()
         PrimaryPartition primary_partition_1;
         PrimaryPartition primary_partition_2;
         PrimaryPartition primary_partition_3;

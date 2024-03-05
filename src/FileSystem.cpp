@@ -71,6 +71,8 @@ bool FileSystem::read_fat32_master_boot_record()
         fat_32_master_boot_record.mbr_signature[0] = mbr_512_byte_sector[510];
         fat_32_master_boot_record.mbr_signature[1] = mbr_512_byte_sector[511];
 
+        // TODO read other 3 partitions
+
         // Check that type code and signature are valid
         if ((fat_32_master_boot_record.primary_partition_1.type_code == 0xB ||
             fat_32_master_boot_record.primary_partition_1.type_code == 0xC) && 
