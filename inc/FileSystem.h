@@ -52,6 +52,17 @@ class FileSystem
         uint16_t chs_begin[3]; // ignore
         uint16_t type_code;    // check to make sure its 0x0B or 0x0C
         uint16_t chs_end[3];   // ignore
+
+        /**
+         * @brief 4 byte address of the Volume ID of the FAT32 file system.
+         * 
+         * @details Multi byte values (such as this address) are stored in Little Endian 
+         * format on SD cards, meaning the LSB comes first. However when passing an address
+         * to the SD card via a command it should be passed in Big Endian format. Meaning 
+         * if this Little Endian byte ordered address would be passed back to the SD card
+         * the byte ordering should be reversed to put it in Big Endian format
+         * 
+         */
         uint16_t lba_begin[4]; // adress of start of FAT32 file system, i.e., VolumeID
         uint16_t number_of_sectors[4]; // ignore
     };
@@ -63,7 +74,7 @@ class FileSystem
         PrimaryPartition primary_partition_2;
         PrimaryPartition primary_partition_3;
         PrimaryPartition primary_partition_4;
-        uint16_t mbr_signature; // should be 0x55AA, always check this
+        uint16_t mbr_signature[2]; // should be 0x55AA, always check this
     };
 
     struct FAT32VolumeID
