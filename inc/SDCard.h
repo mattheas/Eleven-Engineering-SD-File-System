@@ -137,21 +137,18 @@ class SDCard
 
     /**
      * @brief Reads a block of the size selected by SET_BLOCKLEN command, note the data transferred
-     * shall not cross a physical block boundary unless READ_BLK_MISALIGN is set in the CSD.
+     * shall not cross a physical block boundary unless READ_BLK_MISALIGN is set in the CSD. block
+     * address is passed in Big Endian form where the MSB is at index 0 of block_address
      * 
      * NOTE: ASSUMES BLOCK LENGTH OF 512 bytes
      * 
      * TODO look into setting READ_BLK_MISALIGN!!!
      * 
-     * @param num_bytes 
-     * @param block_addr_byte1 
-     * @param block_addr_byte2 
-     * @param block_addr_byte3 
-     * @param block_addr_byte4 
+     * @param block 
+     * @param block_address Array of w/ 32 bit a
      * @return sd_card_command_response_t 
      */
-    sd_card_command_response_t send_cmd17(uint16_t (&block)[512], const uint16_t &block_addr_byte1, 
-                    const uint16_t &block_addr_byte2, const uint16_t &block_addr_byte3, const uint16_t &block_addr_byte4) const;
+    sd_card_command_response_t send_cmd17(uint16_t (&block)[512], const uint16_t (&block_address)[4]) const;
 
   private:
     /**

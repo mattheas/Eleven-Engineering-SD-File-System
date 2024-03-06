@@ -434,8 +434,7 @@ SDCard::sd_card_command_response_t SDCard::send_acmd41() const
     return sd_card_command_response_t::SD_CARD_NO_RESPONSE;
 }
 
-SDCard::sd_card_command_response_t SDCard::send_cmd17(uint16_t (&block)[512], const uint16_t &block_addr_byte1, const uint16_t &block_addr_byte2, 
-                            const uint16_t &block_addr_byte3, const uint16_t &block_addr_byte4) const
+SDCard::sd_card_command_response_t SDCard::send_cmd17(uint16_t (&block)[512], const uint16_t (&block_address)[4]) const
 {
     const uint16_t block_size_bytes = 512U;
     const uint16_t command_17 = 0x51;
@@ -446,10 +445,10 @@ SDCard::sd_card_command_response_t SDCard::send_cmd17(uint16_t (&block)[512], co
 
     // Send 6-byte CMD17 command “0x51  XX XX XX XX 00” to read a block from sd card
     SPI_write(command_17, SPI1);
-    SPI_write(block_addr_byte1, SPI1);
-    SPI_write(block_addr_byte2, SPI1);
-    SPI_write(block_addr_byte3, SPI1);
-    SPI_write(block_addr_byte4, SPI1);
+    SPI_write(block_address[0], SPI1);
+    SPI_write(block_address[1], SPI1);
+    SPI_write(block_address[2], SPI1);
+    SPI_write(block_address[3], SPI1);
     SPI_write(crc_7, SPI1);
 
     bool waiting_for_data = true;
