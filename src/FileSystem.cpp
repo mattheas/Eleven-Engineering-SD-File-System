@@ -19,7 +19,7 @@ FileSystem::FileSystem(sd_driver::SDCard &_sd_card, const file_system_t &_file_s
     read_fat32_master_boot_record(); 
 
     // read VolumeID
-    read_fat_32_volume_id(fat_32_master_boot_record.primary_partition_1.lba_begin[0], fat_32_master_boot_record.primary_partition_1.lba_begin[1], fat_32_master_boot_record.primary_partition_1.lba_begin[2], fat_32_master_boot_record.primary_partition_1.lba_begin[3]);
+    read_fat_32_volume_id(fat_32_master_boot_record.primary_partition_1.lba_begin);
 
     // xpd_echo_int(fat_32_volume_id.sectors_per_cluster, XPD_Flag_UnsignedDecimal); // 0x1 GOOD
     // xpd_putc('\n');
@@ -97,14 +97,12 @@ bool FileSystem::read_fat32_master_boot_record()
     return false;
 }
 
-bool FileSystem::read_fat_32_volume_id(const uint16_t lba_begin_byte1, const uint16_t lba_begin_byte2, const uint16_t lba_begin_byte3, const uint16_t lba_begin_byte4)
+bool FileSystem::read_fat_32_volume_id(const uint16_t (&block_address)[4])
 {
     uint16_t volume_id_sector[512];
     sd_driver::SDCard::sd_card_command_response_t cmd17_response;
 
-    const uint16_t volume_id_sector_address[4] = {lba_begin_byte1, lba_begin_byte2, lba_begin_byte3, lba_begin_byte4};
-
-    cmd17_response = sd_card.send_cmd17(volume_id_sector, volume_id_sector_address);
+    cmd17_response = sd_card.send_cmd17(volume_id_sector, block_address);
 
     for (uint16_t i = 0; i<3; i++)
     {

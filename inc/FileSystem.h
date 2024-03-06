@@ -129,7 +129,7 @@ class FileSystem
      * @return true 
      * @return false 
      */
-    bool read_fat_32_volume_id(const uint16_t lba_begin_byte1, const uint16_t lba_begin_byte2, const uint16_t lba_begin_byte3, const uint16_t lba_begin_byte4);
+    bool read_fat_32_volume_id(const uint16_t (&block_address)[4]);
 
     /**
      * @brief Helper function to add 4 byte numbers. i.e., add together two numbers, each of 4 bytes
