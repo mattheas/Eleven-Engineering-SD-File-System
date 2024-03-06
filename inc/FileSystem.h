@@ -44,7 +44,8 @@ class FileSystem
      * @brief Primary Partition stores a primary partition from the Master Boot Sector (MBR)
      * 
      * @details For simplicity every byte is stored in its own uint16_t, while not efficient
-     * it's more readable.
+     * it's more readable. NOTE: all addresses (or multi byte values) are stored in Big Endian
+     * format where the MSB is stored at index 0 and so forth.
      */
     struct PrimaryPartition
     {
@@ -58,10 +59,8 @@ class FileSystem
          * 
          * @details Multi byte values (such as this address) are stored in Little Endian 
          * format on SD cards, meaning the LSB comes first. However when passing an address
-         * to the SD card via a command it should be passed in Big Endian format. Meaning 
-         * if this Little Endian byte ordered address would be passed back to the SD card
-         * the byte ordering should be reversed to put it in Big Endian format
-         * 
+         * to the SD card via a command it should be passed in Big Endian format. THEREFORE,
+         * when reading in Little Endian values I convert them to Big Endian
          */
         uint16_t lba_begin[4]; // adress of start of FAT32 file system, i.e., VolumeID
         uint16_t number_of_sectors[4]; // ignore
@@ -83,8 +82,10 @@ class FileSystem
      * @brief Volume ID that stores information about the FAT32 file system
      * 
      * @details For simplicity every byte is stored in its own uint16_t, while not efficient
-     * it's more readable. REMEMBER reading multibyte values from SD card are in Little Endian,
-     * i.e., 
+     * it's more readable. SD cards send multi-byte data in Little Endian format. HOWEVER, 
+     * since SD cards expect commands in Big Endian format (and b/c Big Endian reads left to
+     * right like you'd normally read a number) I convert all these Little Endian multi-byte
+     * values into Big Endian
      */
     struct FAT32VolumeID
     {
