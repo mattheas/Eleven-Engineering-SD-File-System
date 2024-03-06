@@ -43,7 +43,7 @@ bool FileSystem::read_fat32_master_boot_record()
 
     sd_driver::SDCard::sd_card_command_response_t cmd17_response;
 
-    const uint16_t mbr_sector_address[4] = {0x00, 0x00, 0x00, 0x00};
+    uint16_t mbr_sector_address[4] = {0x00, 0x00, 0x00, 0x00};
 
     cmd17_response = sd_card.send_cmd17(mbr_512_byte_sector, mbr_sector_address);
 
