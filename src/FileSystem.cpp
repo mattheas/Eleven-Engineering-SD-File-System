@@ -43,7 +43,9 @@ bool FileSystem::read_fat32_master_boot_record()
 
     sd_driver::SDCard::sd_card_command_response_t cmd17_response;
 
-    cmd17_response = sd_card.send_cmd17(mbr_512_byte_sector, 0x00, 0x00, 0x00, 0x00);
+    const uint16_t mbr_sector_address[4] = {0x00, 0x00, 0x00, 0x00};
+
+    cmd17_response = sd_card.send_cmd17(mbr_512_byte_sector, mbr_sector_address);
 
     if(cmd17_response == sd_driver::SDCard::sd_card_command_response_t::SD_CARD_RESPONSE_ACCEPTED)
     {
@@ -98,7 +100,9 @@ bool FileSystem::read_fat_32_volume_id(const uint16_t lba_begin_byte1, const uin
     uint16_t volume_id_sector[512];
     sd_driver::SDCard::sd_card_command_response_t cmd17_response;
 
-    cmd17_response = sd_card.send_cmd17(volume_id_sector, lba_begin_byte1, lba_begin_byte2, lba_begin_byte3, lba_begin_byte4);
+    const uint16_t volume_id_sector_address[4] = {lba_begin_byte1, lba_begin_byte2, lba_begin_byte3, lba_begin_byte4};
+
+    cmd17_response = sd_card.send_cmd17(volume_id_sector, volume_id_sector_address);
 
     for (uint16_t i = 0; i<3; i++)
     {
