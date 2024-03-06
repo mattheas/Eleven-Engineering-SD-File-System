@@ -201,45 +201,43 @@ bool FileSystem::read_fat_32_volume_id(const uint16_t (&block_address)[4])
     return valid_signature;
 }
 
-void FileSystem::add_4_byte_numbers(const uint16_t &num1_byte1, const uint16_t &num1_byte2, const uint16_t &num1_byte3, const uint16_t &num1_byte4,
-                        const uint16_t &num2_byte1, const uint16_t &num2_byte2, const uint16_t &num2_byte3, const uint16_t &num2_byte4,
-                        uint16_t &result_byte1, uint16_t &result_byte2, uint16_t &result_byte3, uint16_t &result_byte4)
+void FileSystem::add_4_byte_numbers(const uint16_t (&number_1)[4], const uint16_t (&number_2)[4], uint16_t (&result)[4])
 {
     // TODO refactor to optimize 
 
     uint16_t carry_byte4 = 0;
-    result_byte4 = num1_byte4 + num2_byte4;
+    result[3] = number_1[3] + number_2[3];
 
-    if (result_byte4 > 0xFF)
+    if (result[3] > 0xFF)
     {
-        result_byte4-=256;
+        result[3]-=256;
         carry_byte4 = 1;
     }
 
     uint16_t carry_byte3 = 0;
-    result_byte3 = num1_byte3 + num2_byte3 + carry_byte4;
+    result[2] = number_1[2] + number_2[2] + carry_byte4;
     
-    if (result_byte3 > 0xFF)
+    if (result[2] > 0xFF)
     {
-        result_byte3-=256;
+        result[2]-=256;
         carry_byte3 = 1;
     }
 
     uint16_t carry_byte2 = 0;
-    result_byte2 = num1_byte2 + num2_byte2 + carry_byte3;
+    result[1] = number_1[1] + number_2[1] + carry_byte3;
     
-    if (result_byte2 > 0xFF)
+    if (result[1] > 0xFF)
     {
-        result_byte2-=256;
+        result[1]-=256;
         carry_byte2 = 1;
     }
 
     
-    result_byte1 = num1_byte1 + num2_byte1 + carry_byte2;
+    result[0] = number_1[0] + number_2[0] + carry_byte2;
 
-    if (result_byte1 > 0xFF)
+    if (result[0] > 0xFF)
     {
         // discard overflow
-        result_byte1-=256;
+        result[0]-=256;
     }
 }

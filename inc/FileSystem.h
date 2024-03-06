@@ -140,9 +140,7 @@ class FileSystem
      * 
      * Numbers are expected to be in Big Endian format where byte 1 is the MSB
      */
-    void add_4_byte_numbers(const uint16_t &num1_byte1, const uint16_t &num1_byte2, const uint16_t &num1_byte3, const uint16_t &num1_byte4,
-                        const uint16_t &num2_byte1, const uint16_t &num2_byte2, const uint16_t &num2_byte3, const uint16_t &num2_byte4,
-                        uint16_t &result_byte1, uint16_t &result_byte2, uint16_t &result_byte3, uint16_t &result_byte4);
+    void add_4_byte_numbers(const uint16_t (&number_1)[4], const uint16_t (&number_2)[4], uint16_t (&result)[4]);
 
 
     sd_driver::SDCard &sd_card;
