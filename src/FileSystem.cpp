@@ -19,8 +19,10 @@ FileSystem::FileSystem(sd_driver::SDCard &_sd_card, const file_system_t &_file_s
     read_fat32_master_boot_record(); 
 
     // read VolumeID
-    read_fat_32_volume_id(fat_32_master_boot_record.primary_partition_1.lba_begin[3], fat_32_master_boot_record.primary_partition_1.lba_begin[2], fat_32_master_boot_record.primary_partition_1.lba_begin[1], fat_32_master_boot_record.primary_partition_1.lba_begin[0]);
+    read_fat_32_volume_id(fat_32_master_boot_record.primary_partition_1.lba_begin[0], fat_32_master_boot_record.primary_partition_1.lba_begin[1], fat_32_master_boot_record.primary_partition_1.lba_begin[2], fat_32_master_boot_record.primary_partition_1.lba_begin[3]);
 
+    // xpd_echo_int(fat_32_volume_id.sectors_per_cluster, XPD_Flag_UnsignedDecimal); // 0x1 GOOD
+    // xpd_putc('\n');
 }
 
 FileSystem::~FileSystem()
