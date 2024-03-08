@@ -13,7 +13,7 @@ using namespace file_system;
 
 FileSystem::FileSystem(sd_driver::SDCard &_sd_card, const file_system_t &_file_system_type) : sd_card(_sd_card), file_system_type(_file_system_type)
 {
-    // Initialize SD card if its not already initalized
+    // Initialize SD card if its not already initalized??
 
     // read MBR
     read_fat32_master_boot_record(); 
@@ -21,8 +21,55 @@ FileSystem::FileSystem(sd_driver::SDCard &_sd_card, const file_system_t &_file_s
     // read VolumeID
     read_fat_32_volume_id(fat_32_master_boot_record.primary_partition_1.lba_begin);
 
-    // xpd_echo_int(fat_32_volume_id.sectors_per_cluster, XPD_Flag_UnsignedDecimal); // 0x1 GOOD
-    // xpd_putc('\n');
+    // Calculate sector address (lba) of the beginning of FAT table (there should be two FAT tables #1 and #2 fyi)
+    //==============================================================================================================================================
+    // fat_begin_lba = Partition_LBA_Begin + Number_of_Reserved_Sectors;
+
+    uint16_t fat_begin_lba[4] = {0x00, 0x00, 0x00, 0x00};
+    add_4_byte_numbers(fat_32_master_boot_record.primary_partition_1.lba_begin, {0x00, 0x00, fat_32_volume_id.size_of_reserved_area_sectors[0], fat_32_volume_id.size_of_reserved_area_sectors[1]}, fat_begin_lba);
+    //==============================================================================================================================================
+
+    // Calculate the sector address (lba) of the first cluster
+    //==============================================================================================================================================
+    // cluster_begin_lba = Partition_LBA_Begin + Number_of_Reserved_Sectors + (Number_of_FATs * Sectors_Per_FAT);
+
+    // multiply number_of_fats by sector_per_fat to get total fat sectors, perform multiplication w/ repeated addition
+    uint16_t total_fat_sectors[4] = {0x00, 0x00, 0x00, 0x00};
+    for (uint16_t i=0; i<fat_32_volume_id.number_of_fats; i++)
+    {
+        add_4_byte_numbers(fat_32_volume_id.sectors_per_fat, total_fat_sectors, total_fat_sectors);
+    }
+
+    uint16_t cluster_begin_lba[4] = {0x00, 0x00, 0x00, 0x00};
+    add_4_byte_numbers(fat_begin_lba, total_fat_sectors, cluster_begin_lba);
+    //==============================================================================================================================================
+
+    // used to convert a cluster number to a block address (which we can send to the sd card driver)
+    //==============================================================================================================================================
+    // lba_addr = cluster_begin_lba + (cluster_number - 2) * sectors_per_cluster;
+    //==============================================================================================================================================
+
+    // Read root directory (one sector for now)
+    //==============================================================================================================================================
+    uint16_t first_root_directory_block[512] ={};
+
+    sd_card.send_cmd17(first_root_directory_block, cluster_begin_lba);
+
+    for (uint16_t i=0; i<512; i++){
+        if(i % 16 == 0)
+        {
+            xpd_putc('\n');
+        }
+        if(i%32 == 0)
+        {
+            xpd_putc('\n');
+        }
+
+        xpd_echo_int(first_root_directory_block[i], XPD_Flag_Hex);
+        xpd_putc(' ');
+    }
+    //==============================================================================================================================================
+
 }
 
 FileSystem::~FileSystem()
