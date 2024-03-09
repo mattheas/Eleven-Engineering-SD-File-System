@@ -47,7 +47,7 @@ class FileSystem
      * it's more readable. NOTE: all addresses (or multi byte values) are stored in Big Endian
      * format where the MSB is stored at index 0 and so forth.
      */
-    struct PrimaryPartition
+    struct FAT32PrimaryPartition
     {
         uint16_t boot_flag;    // ignore (0x80 active?, 0x00 inactive?)
         uint16_t chs_begin[3]; // ignore
@@ -71,10 +71,10 @@ class FileSystem
         // 446 bytes of Boot Code ignored
 
         // TODO make an array of partitions, also read them all in read_fat32_master_boot_record()
-        PrimaryPartition primary_partition_1;
-        PrimaryPartition primary_partition_2;
-        PrimaryPartition primary_partition_3;
-        PrimaryPartition primary_partition_4;
+        FAT32PrimaryPartition primary_partition_1;
+        FAT32PrimaryPartition primary_partition_2;
+        FAT32PrimaryPartition primary_partition_3;
+        FAT32PrimaryPartition primary_partition_4;
         uint16_t mbr_signature[2]; // should be 0x55AA, always check this
     };
 
