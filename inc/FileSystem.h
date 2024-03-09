@@ -40,6 +40,15 @@ class FileSystem
         FIXED_DISK = 0xF8
     };
 
+    enum class directory_entry_t
+    {
+        VOLUME_LABEL = 0,
+        DIRECTORY_ENTRY,
+        FILE_ENTRY,
+        LFN_ENTRY
+
+    };
+
     /**
      * @brief Primary Partition stores a primary partition from the Master Boot Sector (MBR)
      * 
@@ -107,6 +116,126 @@ class FileSystem
         uint16_t root_directory_first_cluster[4]; // usually 2
 
         uint16_t volume_id_signature[2]; // should be 0x55AA or 0xAA55
+    };
+
+    /**
+     * @brief Represents a valid directory entry in the file system which is either 
+     * a volume label, directory, file OR LFN entry.
+     * 
+     * @details A short directory entry and contains all the information needed such as the 
+     * name, creation time, file size, starting cluster address, etc in a single 32 byte entry, 
+     * it can exist on its own without additional information. Compared to a LFN entry that really 
+     * only contains characters (and a sequence identifying byte, checksum, etc.) and is 
+     * accompanied by 0 or more other LFN entries AND one short entry. A short entry
+     * must always accompany a set of 1 or more LFN entries and contains both a shortened name
+     * of the LFN entry as well as all the important aforementioned information. FAT32 was designed
+     * in a way to be backwards compatible with systems that did not support LFN's, meaning that
+     * LFN entry's can technically be ignored since all the information (including a condensed name)
+     * is present in the short entry
+     * 
+     * 
+     * E.g., of root directory with different various directory entries
+     * 
+     * [Volume Label]
+     * [Short Entry]
+     * [LFN Entry]              \
+     * [LFN Entry]               | -> Together form a single long file entry
+     * [Short Entry]            /  -> Alternatively the S.E contains all the data w/ shortened name
+     */
+    struct FAT32FileSystemEntry
+    {
+        /**
+         * @brief Only if an entry is in use should this flag be set, it indicates that this
+         * entry is used to store a short entry or LFN. If this flag is set the parent_directory
+         * pointer should be set (and if its not the entry is then the root directory)
+         */
+        bool entry_in_use = false;
+
+        /**
+         * @brief Any entry in the file system must have a parent directory, except the root
+         * directory which has no parent (therefore nullptr). This is used for storing and 
+         * keeping the traversability of the tree like structure of a file system into a 
+         * linear data structure (i.e, array)
+         */
+        FAT32FileSystemEntry *parent_directory = nullptr;
+
+        /**
+         * @brief Entrys that are deleted, i.e., the first byte of the entry or 
+         * name_of_entry[0] is 0xE5 and that means they can be overwritten. It ALSO
+         * means that the data contained in the entry is invalid.
+         */
+        bool deleted_directory_entry;
+
+        /**
+         * @brief Contains information about what type of entry, this is boiled down 
+         * into the directory_entry_t 
+         */
+        uint16_t attribute_byte;
+
+        /**
+         * @brief Type of directory entry, determines which part of the structs data
+         * members are valid
+         */
+        directory_entry_t entry_type; 
+
+        // Short Directory Entry (everthing execpt a LFN)
+        //==============================================================================================================================================
+        /**
+         * @brief Name of directory entry in ASCII, follows convential 8.3 format
+         * , i.e., 8 characters for name and 3 for extension.
+         * 
+         * File name that falls within the 11 bytes (from myfile.txt) (spaces make up extra space)
+         *      E.g., "MYFILE  TXT"
+         * 
+         * File name that has been shortened (from verylongname.txt)
+         *      E.g., "VERYLO~1AMETXT"
+         */
+        char name_of_entry[11];
+
+        /**
+         * @brief Address of the first cluster of the entry, stored in Big Endian
+         */
+        uint16_t starting_cluster_address[4];
+
+        /**
+         * @brief Size of entry in bytes, for directories this is 0. Byte order is Big Endian
+         */
+        uint16_t size_of_entry_in_bytes[4];
+        //==============================================================================================================================================
+
+        // Long Directory Entry
+        //==============================================================================================================================================
+        /**
+         * @brief This byte gives information as to where this LFN belongs in the sequence 
+         * of a long file name. As a note LFN come in a reverse sequence, meaning the last
+         * comes first (think little endian), the last one in the sequence (which is the 
+         * first encountered when reading it from memory) is OR'ed with 0x40. E.g., an 
+         * example where three LFN's come before a short entry. Another worthwhile thing
+         * to mention is the use of 1 based indexing, i.e., the last LFN encountered (
+         * which happens to be the first) has an index of 0x01
+         * 
+         * 0x43 "me.txt"
+         * 0x02 "y long filena"
+         * 0x01 "File with ver"
+         * [Short Entry here with condensed name]
+         * 
+         */
+        uint16_t sequence_order_index_byte;
+
+        /**
+         * @brief Checksum for ??
+         */
+        // TODO read into how check sum works for LFN
+        uint16_t checksum;
+
+        /**
+         * @brief In a LFN entry the characters are encoded in UNICODE, meaning that each 
+         * character corresponds to TWO bytes, in this case each uint16_t stores two bytes.
+         * A value of 0xFFFF indicates that the character is unused, this would typically
+         * be present in the last entry(if there are multiple LFN's that make total entry)
+         */
+        uint16_t long_name_of_entry[13];
+        //==============================================================================================================================================
     };
 
     FAT32MasterBootRecord get_fat_32_master_boot_record() const;
