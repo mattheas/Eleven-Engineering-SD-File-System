@@ -248,15 +248,12 @@ class FileSystem
     /**
      * @brief reads the volume id, which should be the first sector of the file system
      * 
-     * @details The bytes should be passed in Big Endian format, i.e., how you would normally
+     * @details The address should be passed in Big Endian format, i.e., how you would normally
      * read a number from left to right
      * 
-     * @param lba_begin_byte1 Most Significant Byte(MSB) of address
-     * @param lba_begin_byte2 
-     * @param lba_begin_byte3 
-     * @param lba_begin_byte4 Least Significant Byte(LSB) of address
-     * @return true 
-     * @return false 
+     * @param block_address sector address of volume id
+     * @return true if there is a valid signature in the last two bytes of the sector
+     * @return false if there is an invalid signature in the last two bytes of the sector
      */
     bool read_fat_32_volume_id(const uint16_t (&block_address)[4]);
 
