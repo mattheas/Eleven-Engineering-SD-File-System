@@ -279,6 +279,8 @@ class FileSystem
     FAT32MasterBootRecord fat_32_master_boot_record;
 
     FAT32VolumeID fat_32_volume_id;
+
+    FAT32FileSystemEntry file_system_entrys[100];
 };
 } // namespace file_system
 
