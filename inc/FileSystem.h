@@ -50,6 +50,13 @@ class FileSystem
     };
 
     /**
+     * @brief A static constexpr evaluated at compile time to be used for declaring the
+     * length of the file_system_entrys[] which is where directory entries (files, folders 
+     * and volume label are stored)
+     */
+    constexpr static uint16_t total_directory_entries = 100U;
+
+    /**
      * @brief Primary Partition stores a primary partition from the Master Boot Sector (MBR)
      * 
      * @details For simplicity every byte is stored in its own uint16_t, while not efficient
@@ -268,6 +275,38 @@ class FileSystem
      */
     void add_4_byte_numbers(const uint16_t (&number_1)[4], const uint16_t (&number_2)[4], uint16_t (&result)[4]);
 
+    /**
+     * @brief Helper function to subtract 4 byte numbers. i.e., add together two numbers, each of 4 bytes
+     * 
+     * @details Assumes that num1 > num2
+     * 
+     * @param number_1 minuend of the expression
+     * @param number_2 subtrahend of the expression
+     * @param result of subtraction operation
+     */
+    void subtract_4_byte_numbers(const uint16_t (&number_1)[4], const uint16_t (&number_2)[4], uint16_t (&result)[4]);
+
+    /**
+     * @brief Recursively explores a directory and stores its contents (if a valid file/ directory) 
+     * in file_system_entrys[]
+     * 
+     * @param directory_begin_sector_addr sector address of directory in big endian format
+     * @param parent_directory reference/ pointer to parent directory (nullptr is root)
+     * 
+     * @return true indicates that recursive read operation was succesful 
+     * @return false indicates that recursive read operation was unsuccesful 
+     * b/c it was stopped due to excessive recursion
+     */
+    bool read_directory_recursive(const uint16_t (&directory_begin_sector_addr)[4], FAT32FileSystemEntry *parent_directory);
+
+    /**
+     * @brief Given a 4-byte cluster number in Big Endian format calculate the sector address it corresponds to 
+     * in Big Endian format
+     * 
+     * @param cluster_number 
+     * @param resulting_sector_address 
+     */
+    void calculate_sector_address_from_cluster_number(const uint16_t (&cluster_number)[4], uint16_t (&resulting_sector_address)[4]);
 
     sd_driver::SDCard &sd_card;
 
@@ -277,7 +316,21 @@ class FileSystem
 
     FAT32VolumeID fat_32_volume_id;
 
-    FAT32FileSystemEntry file_system_entrys[100];
+    FAT32FileSystemEntry file_system_entrys[total_directory_entries];
+
+    // tracks where we are in the file systems entry array
+    uint16_t file_systems_entry_index = 0U;
+
+    /**
+     * @brief The sector address (lba) of the first cluster of the data region, normally the 
+     * root directory starts here but not guaranteed
+     * 
+     * @details Calculated using:
+     * 
+     * cluster_begin_lba = Partition_LBA_Begin + Number_of_Reserved_Sectors + (Number_of_FATs * Sectors_Per_FAT);
+     * 
+     */
+    uint16_t cluster_begin_lba[4] = {0x00, 0x00, 0x00, 0x00};
 };
 } // namespace file_system
 
