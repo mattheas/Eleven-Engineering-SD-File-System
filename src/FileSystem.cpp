@@ -67,6 +67,113 @@ FileSystem::FAT32VolumeID FileSystem::get_fat_32_volume_id() const
     return fat_32_volume_id;
 }
 
+bool FileSystem::delete_file(const uint16_t (&file_name)[11], const uint16_t &absolute_path_entries, const uint16_t (&absolute_file_path)[10][11])
+{
+    // index of file to be deleted in file_system_entrys[] IF it exists
+    int16_t entry_index = -1;
+
+    // search for file name in file_system_entrys[] for a name that matches
+    for (uint16_t i = 0; i < total_directory_entries; i++)
+    {   
+        // comparing char arrays with an index variable does not seem to work
+        bool entry_name_match = (static_cast<uint16_t>(file_system_entrys[i].name_of_entry[0]) == file_name[0]) && 
+                                (static_cast<uint16_t>(file_system_entrys[i].name_of_entry[1]) == file_name[1]) &&
+                                (static_cast<uint16_t>(file_system_entrys[i].name_of_entry[2]) == file_name[2]) &&
+                                (static_cast<uint16_t>(file_system_entrys[i].name_of_entry[3]) == file_name[3]) &&
+                                (static_cast<uint16_t>(file_system_entrys[i].name_of_entry[4]) == file_name[4]) &&
+                                (static_cast<uint16_t>(file_system_entrys[i].name_of_entry[5]) == file_name[5]) &&
+                                (static_cast<uint16_t>(file_system_entrys[i].name_of_entry[6]) == file_name[6]) &&
+                                (static_cast<uint16_t>(file_system_entrys[i].name_of_entry[7]) == file_name[7]) &&
+                                (static_cast<uint16_t>(file_system_entrys[i].name_of_entry[8]) == file_name[8]) &&
+                                (static_cast<uint16_t>(file_system_entrys[i].name_of_entry[9]) == file_name[9]) &&
+                                (static_cast<uint16_t>(file_system_entrys[i].name_of_entry[10]) == file_name[10]);
+
+
+        if (entry_name_match)
+        {
+            // a file name match, however must check now for the correct absolute path
+
+            // get the parent of the current file system entry
+            FAT32FileSystemEntry *current_parent_directory;
+            current_parent_directory = file_system_entrys[i].parent_directory;
+
+            // check if we are looking for a file that exists in the root directory
+            if (absolute_path_entries == 0 && current_parent_directory == nullptr)
+            {
+                // simple case, file being searched for is in the root, exit loop with saved index
+                entry_index = i;
+                break;
+            }
+            else
+            {
+                
+                // assume that the path's matches, you traverse back up the tree to disprove potentially
+                bool absolute_path_match = true; 
+
+                // guarnteed at least one iteration 
+                for (uint16_t j = 0; j < absolute_path_entries; j++)
+                {
+                    if (current_parent_directory != nullptr)
+                    {
+
+                        // comparing char arrays with an index variable does not seem to work
+                        bool directory_name_match = (static_cast<uint16_t>((*current_parent_directory).name_of_entry[0]) == (absolute_file_path[j][0] & 0xFF)) && 
+                                                (static_cast<uint16_t>((*current_parent_directory).name_of_entry[1]) == (absolute_file_path[j][1] & 0xFF)) &&
+                                                (static_cast<uint16_t>((*current_parent_directory).name_of_entry[2]) == (absolute_file_path[j][2] & 0xFF)) &&
+                                                (static_cast<uint16_t>((*current_parent_directory).name_of_entry[3]) == (absolute_file_path[j][3] & 0xFF)) &&
+                                                (static_cast<uint16_t>((*current_parent_directory).name_of_entry[4]) == (absolute_file_path[j][4] & 0xFF)) &&
+                                                (static_cast<uint16_t>((*current_parent_directory).name_of_entry[5]) == (absolute_file_path[j][5] & 0xFF)) &&
+                                                (static_cast<uint16_t>((*current_parent_directory).name_of_entry[6]) == (absolute_file_path[j][6] & 0xFF)) &&
+                                                (static_cast<uint16_t>((*current_parent_directory).name_of_entry[7]) == (absolute_file_path[j][7] & 0xFF)) &&
+                                                (static_cast<uint16_t>((*current_parent_directory).name_of_entry[8]) == (absolute_file_path[j][8] & 0xFF)) &&
+                                                (static_cast<uint16_t>((*current_parent_directory).name_of_entry[9]) == (absolute_file_path[j][9] & 0xFF)) &&
+                                                (static_cast<uint16_t>((*current_parent_directory).name_of_entry[10]) == (absolute_file_path[j][10] & 0xFF));
+
+
+
+                        if (directory_name_match == true)
+                        {
+                            // file path so far matches so set current parent to the enclosing directory and continue verifying path
+                            current_parent_directory = current_parent_directory->parent_directory;
+                        }
+                        else 
+                        {
+                            // absolute path does not match, break 
+                            absolute_path_match = false;
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        // absolute path does not match, break 
+                        absolute_path_match = false;
+                        break;
+                    }
+                }
+
+                if (absolute_path_match == true && current_parent_directory == nullptr)
+                {
+                    // file to delete has been found, break out of outer loop with entry index saved
+                    entry_index = i;
+                    break;
+                }
+
+            }
+            
+        }
+    }
+
+    if (entry_index == -1)
+    {
+        // given file name not found so return early
+        return false;
+    }
+    else
+    {
+        return true;
+    }
+}
+
 bool FileSystem::read_fat32_master_boot_record()
 {
     uint16_t mbr_512_byte_sector[512];

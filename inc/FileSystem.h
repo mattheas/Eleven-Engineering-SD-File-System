@@ -249,6 +249,28 @@ class FileSystem
 
     FAT32VolumeID get_fat_32_volume_id() const;
 
+    /**
+     * @brief Attempts to delete a file with the given name, at the specified absolute file path
+     *              
+     *              FILE NAMES/ FOLDER NAMES SHOULD BE IN ALL CAPS
+     * 
+     * @param file_name name of file in ASCII equivalent, if length of file name is < 11 pad with ascii spaces (i.e., 0x20) between
+     *                  the filename and file extension, null terminator (i.e., 0x0) should not be included, also the last three
+     *                  characters, occupying index's [8], [9] & [10] are always the file extension
+     *                      e.g., myfile.txt --> MYFILE  TXT
+     * @param absolute_path_entries the depth of the file in the file system, if in root directory should be 0
+     *                      e.g., if path to file is /afolder/myfile.txt  the depth is 1
+     * @param absolute_file_path is a 2D array of directory names, that specify the absolute path from the root to the file. Index 0
+     *                  must always be the directory that directly encloses the file, the next (i.e., 1) encloses that directory, and so on
+     *                      e.g., if the 'normal' absolute path to a file is '/folderA/folderB/myfile.txt' then at index 0 should be stored
+     *                            "FOLDERB    " and at index 1 should be "FOLDERA    "
+     *                  IMPORTANT: the folders should be in the order from the one that encloses the file back up to the
+     *                          folder thats stored in the root directory, so backwards to how its normally seen
+     * @return true file was succesfully deleted
+     * @return false file was not deleted (i.e., operation failed for some reason such as file not existing)
+     */
+    bool delete_file(const uint16_t (&file_name)[11], const uint16_t &absolute_path_entries, const uint16_t (&absolute_file_path)[10][11]);
+
   private:
     bool read_fat32_master_boot_record();
 
