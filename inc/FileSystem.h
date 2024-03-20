@@ -298,7 +298,7 @@ class FileSystem
     void add_4_byte_numbers(const uint16_t (&number_1)[4], const uint16_t (&number_2)[4], uint16_t (&result)[4]);
 
     /**
-     * @brief Helper function to subtract 4 byte numbers. i.e., add together two numbers, each of 4 bytes
+     * @brief Helper function to subtract 4 byte numbers. i.e., subtract two numbers, each of 4 bytes
      * 
      * @details Assumes that num1 > num2
      * 
