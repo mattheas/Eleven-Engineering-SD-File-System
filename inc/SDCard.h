@@ -69,12 +69,32 @@ class SDCard
         SD_CARD_IN_IDLE_MODE_RESPONSE = 0x1,
 
         SD_CARD_ILLEGAL_COMMAND = 0x5,
-
         SD_CARD_ILLEGAL_COMMAND_AND_CRC_ERROR = 0xD,
+
+        /**
+         * @brief A potenial response from SD card when writing to it (with CMD24)
+         */
+        SD_CARD_DATA_REJECTED_CRC_ERROR = 0xFA,
+
+        /**
+         * @brief A potenial response from SD card when writing to it (with CMD24)
+         */
+        SD_CARD_DATA_REJECTED_WRITE_ERROR = 0xFB,
 
         SD_CARD_CHECK_PATTERN_ERROR = 0xFC,
         SD_CARD_UNSUPPORTED_VOLTAGE = 0xFD,
+
+        /**
+         * @brief A generalized response indicating the command was succesful
+         * 
+         */
         SD_CARD_RESPONSE_ACCEPTED = 0xFE,
+
+        /**
+         * @brief A generalized response indicating the command was unsuccesful, 
+         * most likely because of no response or an unknown reponse by the SD card 
+         * 
+         */
         SD_CARD_NO_RESPONSE = 0xFF
 
     };
