@@ -170,6 +170,16 @@ class SDCard
      */
     sd_card_command_response_t send_cmd17(uint16_t (&block)[512], const uint16_t (&block_address)[4]) const;
 
+    /**
+     * @brief Writes a single block (512 bytes normally) to the SD card. block address is passed in Big Endian
+     * format where the MSB at index 0
+     * 
+     * @param block 
+     * @param block_address 
+     * @return sd_card_command_response_t 
+     */
+    sd_card_command_response_t send_cmd24(const uint16_t (&block)[512], const uint16_t (&block_address)[4]) const;
+
   private:
     /**
      * @brief Chip Select (C3) inactive high for pin PD3, this disables 

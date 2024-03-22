@@ -438,7 +438,7 @@ SDCard::sd_card_command_response_t SDCard::send_cmd17(uint16_t (&block)[512], co
 {
     const uint16_t block_size_bytes = 512U;
     const uint16_t command_17 = 0x51;
-    const uint16_t crc_7 = 0x00; // crc7 of bytes 1-5 of command
+    const uint16_t crc_7 = 0x00; // TODO calculate crc7 of bytes 1-5 of command
 
     // assert CS to start communication
     gpio_write(CS_ACTIVE_LOW, GPIO_D);
@@ -487,4 +487,153 @@ SDCard::sd_card_command_response_t SDCard::send_cmd17(uint16_t (&block)[512], co
     SPI_write(0xFF, SPI1);
 
     return sd_card_command_response_t::SD_CARD_RESPONSE_ACCEPTED;
+}
+
+SDCard::sd_card_command_response_t SDCard::send_cmd24(const uint16_t (&block)[512], const uint16_t (&block_address)[4]) const
+{
+    constexpr uint16_t block_size_bytes = 512U;
+    constexpr uint16_t command_24 = 0x58;
+    constexpr uint16_t crc_7 = 0x00; // TODO calculate crc7 of bytes 1-5 of command
+    constexpr uint16_t start_block_token = 0xFE; // sent to SD card
+    constexpr uint16_t busy_wait_token = 0x00; // sent by SD card
+
+    // assert CS to start communication
+    gpio_write(CS_ACTIVE_LOW, GPIO_D);
+
+    // Send 6-byte CMD24 command “0x58 XX XX XX XX 00” to read a block from sd card
+    SPI_write(command_24, SPI1);
+    SPI_write(block_address[0], SPI1);
+    SPI_write(block_address[1], SPI1);
+    SPI_write(block_address[2], SPI1);
+    SPI_write(block_address[3], SPI1);
+    SPI_write(crc_7, SPI1);
+
+    bool valid_r1_reponse = false;
+
+    // wait for a valid response back
+    for (uint16_t i = 0; i < NUM_INVALID_RESPONSE_LIMIT_SPI_READ; i++)
+    {
+        const uint16_t spi_read_value = SPI_read(SPI1);
+
+        if (spi_read_value == static_cast<uint16_t>(sd_card_command_response_t::SD_CARD_NOT_IN_IDLE_MODE_RESPONSE))
+        {
+            valid_r1_reponse = true;
+            break;
+        }
+    }
+
+    if (valid_r1_reponse == false)
+    {
+        // de-assert CS to end communication
+        gpio_write(CS_INACTIVE_HIGH, GPIO_D);
+        SPI_write(0xFF, SPI1);
+        
+        // return early because of no response from SD card
+        return sd_card_command_response_t::SD_CARD_NO_RESPONSE;
+    }
+
+    // send start block token to notify SD card that block is starting
+    SPI_write(start_block_token, SPI1);
+
+    // Send 512 bytes of data
+    for (uint16_t i = 0; i < block_size_bytes; i++)
+    {
+        SPI_write(block[i], SPI1);
+    }
+    
+    // Write two bytes crc (16?), doesnt actually 
+    // SPI_write(0x00, SPI1);
+    // SPI_write(0x00, SPI1);
+    
+    bool waiting_for_data_response_token = true;
+
+    /*
+        structure of data response token: 0bxxx0RRR1
+        xxx -> dont care bits
+        0   -> should be zero?
+        RRR -> Status of write operation
+        1   -> should be one?
+
+        RRR has 3 valid forms outlined below:
+        010 -> Data accepted
+        101 -> Data rejected due to CRC error
+        110 -> Data rejected due to a write error
+    */
+    uint16_t data_response_token = 0U;
+    uint16_t num_invalid_reads = 0U;
+
+    do{
+        const uint16_t spi_read_value = SPI_read(SPI1);
+
+        if (spi_read_value == 0xFF)
+        {
+            num_invalid_reads++;
+            if (num_invalid_reads > 1000)
+            {
+                // de-assert CS to end communication
+                gpio_write(CS_INACTIVE_HIGH, GPIO_D);
+                SPI_write(0xFF, SPI1);
+
+                // return early if num invalid read threshold is reached
+                return sd_card_command_response_t::SD_CARD_NO_RESPONSE;
+            }
+        }
+        else 
+        {
+            data_response_token = spi_read_value;
+
+            // exit loop when 0xFE is read, this indicates next byte is start of block
+            waiting_for_data_response_token = false;
+        }
+
+    }while(waiting_for_data_response_token);
+
+    // Check if the data was accepted
+    // Check for 0xCA b/c there seems to be a off by 1 bit shift for some reason?
+    if (data_response_token == 0xCA || ((data_response_token & 0x1F) == 0x5))
+    {
+        // data accepted now simply busy wait while sd card sends busy tokens
+        bool receiving_busy_wait_token = true;
+        do{
+            uint16_t spi_read_value = SPI_read(SPI1);
+
+            if (spi_read_value != busy_wait_token)
+            {
+                receiving_busy_wait_token = false;
+            }
+
+        } while (receiving_busy_wait_token);
+
+        // de-assert CS to end communication
+        gpio_write(CS_INACTIVE_HIGH, GPIO_D);
+        SPI_write(0xFF, SPI1);
+
+        return sd_card_command_response_t::SD_CARD_RESPONSE_ACCEPTED;
+    } 
+    else if((data_response_token & 0x1F) == 0xB)
+    {
+        // de-assert CS to end communication
+        gpio_write(CS_INACTIVE_HIGH, GPIO_D);
+        SPI_write(0xFF, SPI1);
+
+        // data rejecetd due to CRC error
+        return sd_card_command_response_t::SD_CARD_DATA_REJECTED_CRC_ERROR;
+    }
+    else if((data_response_token & 0x1F) == 0xD)
+    {
+        // de-assert CS to end communication
+        gpio_write(CS_INACTIVE_HIGH, GPIO_D);
+        SPI_write(0xFF, SPI1);
+
+        // data rejected due to write error
+        return sd_card_command_response_t::SD_CARD_DATA_REJECTED_WRITE_ERROR;
+    }
+    else
+    {
+        // de-assert CS to end communication
+        gpio_write(CS_INACTIVE_HIGH, GPIO_D);
+        SPI_write(0xFF, SPI1);
+
+        return sd_card_command_response_t::SD_CARD_NO_RESPONSE;
+    }
 }
