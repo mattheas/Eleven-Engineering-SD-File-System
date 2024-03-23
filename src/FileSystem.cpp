@@ -167,13 +167,89 @@ bool FileSystem::delete_file(const uint16_t (&file_name)[11], const uint16_t &nu
 
     if (entry_index == -1)
     {
-        // given file name not found so return early
+        // early return (that operation failed) if the file name is not found
         return false;
     }
-    else
+
+    // flag set to true when the file has been deleted from the fat table
+    bool file_deleted_from_fat_table = false;
+
+    // Deleting file from FAT is "easy" if the cluster number is zero BECAUSE that means the file 
+    // is created but it is empty and therefore has no clusters associated with it, additionally a sanity
+    // check of the other invalid cluster number is performed too, which is 0x1
+    if ((file_system_entrys[entry_index].starting_cluster_address[3] == 0x0 || file_system_entrys[entry_index].starting_cluster_address[3] == 0x1) &&
+        file_system_entrys[entry_index].starting_cluster_address[2] == 0x0 &&
+        file_system_entrys[entry_index].starting_cluster_address[1] == 0x0 &&
+        file_system_entrys[entry_index].starting_cluster_address[0] == 0x0)
     {
-        return true;
+        file_deleted_from_fat_table = true;
     }
+
+    // set the current cluster number of interest to be the starting cluster address of the file
+    uint16_t current_cluster_number[4] = {0x0, 0x0, 0x0, 0x0};
+    current_cluster_number[3] = file_system_entrys[entry_index].starting_cluster_address[3];
+    current_cluster_number[2] = file_system_entrys[entry_index].starting_cluster_address[2];
+    current_cluster_number[1] = file_system_entrys[entry_index].starting_cluster_address[1];
+    current_cluster_number[0] = file_system_entrys[entry_index].starting_cluster_address[0];
+
+    while (!file_deleted_from_fat_table)
+    {
+        // Determine which sector of the FAT needs to be read in given the current cluster number,
+        // additionally find the index of the starting byte of a the 4 byte entry
+        uint16_t sector_number_offset_from_fat_begin[4] = {0x0, 0x0, 0x0, 0x0};
+        uint16_t cluster_index_in_sector = 0U;
+        calculate_fat_sector_offset_from_cluster_number(current_cluster_number, sector_number_offset_from_fat_begin, cluster_index_in_sector);
+
+        // read the fat table sector that contains cluster number of concern
+        // TODO optimize to only re-read the sector if needed
+        uint16_t current_fat_table_sector[512] = {};
+        add_4_byte_numbers(fat_begin_lba, sector_number_offset_from_fat_begin, sector_number_offset_from_fat_begin);
+        sd_card.send_cmd17(current_fat_table_sector, sector_number_offset_from_fat_begin);
+
+        // read data stored at index, if EOF, hooray, if not then must follow the cluster chain
+        uint16_t data_stored_at_cluster_index[4] = {}; // stored as Big Endian, so make sure to "flip" incoming data
+        data_stored_at_cluster_index[3] = current_fat_table_sector[cluster_index_in_sector]; // LSB
+        data_stored_at_cluster_index[2] = current_fat_table_sector[cluster_index_in_sector+1];
+        data_stored_at_cluster_index[1] = current_fat_table_sector[cluster_index_in_sector+2];
+        data_stored_at_cluster_index[0] = current_fat_table_sector[cluster_index_in_sector+3]; // MSB
+
+        // whatever is stored in that cluster should now be deleted/ cleared/ freed by setting to 0's
+        current_fat_table_sector[cluster_index_in_sector] = 0x00; // LSB
+        current_fat_table_sector[cluster_index_in_sector+1] = 0x00;
+        current_fat_table_sector[cluster_index_in_sector+2] = 0x00;
+        current_fat_table_sector[cluster_index_in_sector+3] = 0x00; // MSB
+
+        // TODO optimize this as the sector only needs to be written to if a new sector will be read in
+        /*
+        
+            TODO delete cluster entry by writing over fat table current_fat_table_sector, that is now updated
+            to have the values at the current cluster set to 0x00000000
+
+            Make sure to also update FAT Table #2
+        
+        */
+
+        // Check if data is another cluster number or EOF (?FFFFFF8h - ?FFFFFFFh indicates EOF on FAT32)
+        if (data_stored_at_cluster_index[0] >= 0xF && // MSB
+            data_stored_at_cluster_index[1] == 0xFF &&
+            data_stored_at_cluster_index[2] == 0xFF &&
+            data_stored_at_cluster_index[3] >= 0xF8) // LSB
+        {
+            file_deleted_from_fat_table = true;
+        }
+        else
+        {
+            // file is not deleted so update the the current_cluster_number to the next one in the chain
+            current_cluster_number[3] = data_stored_at_cluster_index[3];
+            current_cluster_number[2] = data_stored_at_cluster_index[2];
+            current_cluster_number[1] = data_stored_at_cluster_index[1];
+            current_cluster_number[0] = data_stored_at_cluster_index[0];
+        }
+    }
+
+    // TODO update the root directory and "delete" the file by setting the first byte to 0xE5
+
+    return true;
 }
 
 bool FileSystem::read_fat32_master_boot_record()
