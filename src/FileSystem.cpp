@@ -622,3 +622,57 @@ void FileSystem::calculate_sector_address_from_cluster_number(const uint16_t (&c
 
     add_4_byte_numbers(cluster_begin_lba, lba_offset, resulting_sector_address);
 }
+
+void FileSystem::calculate_fat_sector_offset_from_cluster_number(const uint16_t(&cluster_number)[4], uint16_t (&fat_sector_offset)[4], uint16_t &index)
+{
+    /**
+     * @brief With a 512 byte sector, there are 128 cluster number entrys per sector
+     */
+    constexpr uint16_t num_cluster_entrys_per_fat_table_sector = 128U;
+    
+    // Make a copy of the cluster number so it can be decremented if needed
+    uint16_t copy_of_starting_cluster_number[4];
+    copy_of_starting_cluster_number[0] = cluster_number[0];
+    copy_of_starting_cluster_number[1] = cluster_number[1];
+    copy_of_starting_cluster_number[2] = cluster_number[2];
+    copy_of_starting_cluster_number[3] = cluster_number[3];
+
+    /**
+     * @brief This contains the offset, in sectors, from the beginning of a FAT table, where we are currently 
+     * looking at for reading a file clusterchain. E.g., if this offset is zero, the first sector of a FAT table 
+     * is what is being looked at
+     */
+    // uint16_t sector_number_offset_from_fat_begin[4] = {0x0, 0x0, 0x0, 0x0};
+
+    bool calculating_sector_offset = true;
+
+    while (calculating_sector_offset)
+    {
+        // check if remaining cluster number is <= 127, meaning our sector_number_offset[4] is correct
+        if (copy_of_starting_cluster_number[0] == 0x00 &&
+            copy_of_starting_cluster_number[1] == 0x00 &&
+            copy_of_starting_cluster_number[2] == 0x00 &&
+            copy_of_starting_cluster_number[3] <= 127U)
+        {
+            // No more subtraction needed, the sector offset is found
+            calculating_sector_offset = false;
+
+            // A sector contains 128 cluster entries of 4 bytes each, so 
+            // multiply by 4 to actually get the index of a 512 byte sector where its stored
+            index = copy_of_starting_cluster_number[3] * 4;
+        }
+        else
+        {
+            // sector offset is not yet found continue decrementing
+            uint16_t num_to_subtract[4] = {0x0, 0x0, 0x0, num_cluster_entrys_per_fat_table_sector};
+
+            // copy_of_starting_cluster_address -= num_to_subtract(128)
+            subtract_4_byte_numbers(copy_of_starting_cluster_number, num_to_subtract, copy_of_starting_cluster_number);
+
+            // sector_number_offset_from_fat_begin += 1
+            uint16_t num_to_add[4] = {0x0, 0x0, 0x0, 0x1};
+            add_4_byte_numbers(fat_sector_offset, num_to_add, fat_sector_offset);
+
+        }
+    }
+}

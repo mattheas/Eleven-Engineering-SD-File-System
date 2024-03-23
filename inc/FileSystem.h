@@ -330,6 +330,17 @@ class FileSystem
      */
     void calculate_sector_address_from_cluster_number(const uint16_t (&cluster_number)[4], uint16_t (&resulting_sector_address)[4]);
 
+    /**
+     * @brief Given a 4-byte cluster number in Big Endian format calculate the offset (in sectors) from the beginning of a FAT table
+     * where the cluster information about the next cluster in the chain is stored
+     * 
+     * @param cluster_number The cluster number we wish to find FAT table
+     * @param fat_sector_offset This is a returned value that contains which sector of the FAT table the cluster number is in
+     * @param index This is a returned value that contains the index of the cluster number within the sector, technically this 
+     * should be the cluster number % 128 
+     */
+    void calculate_fat_sector_offset_from_cluster_number(const uint16_t(&cluster_number)[4], uint16_t (&fat_sector_offset)[4], uint16_t &index);
+
     sd_driver::SDCard &sd_card;
 
     const file_system_t &file_system_type;
