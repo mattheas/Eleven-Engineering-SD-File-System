@@ -24,7 +24,7 @@ FileSystem::FileSystem(sd_driver::SDCard &_sd_card, const file_system_t &_file_s
     // Calculate sector address (lba) of the beginning of FAT table (there should be two FAT tables #1 and #2 fyi)
     //==============================================================================================================================================
     // fat_begin_lba = Partition_LBA_Begin + Number_of_Reserved_Sectors;
-    uint16_t fat_begin_lba[4] = {0x00, 0x00, 0x00, 0x00};
+    // fat_begin_lba[4] = {0x00, 0x00, 0x00, 0x00};
     add_4_byte_numbers(fat_32_master_boot_record.primary_partition_1.lba_begin, {0x00, 0x00, fat_32_volume_id.size_of_reserved_area_sectors[0], fat_32_volume_id.size_of_reserved_area_sectors[1]}, fat_begin_lba);
     //==============================================================================================================================================
 

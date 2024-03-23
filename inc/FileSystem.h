@@ -364,6 +364,8 @@ class FileSystem
      * 
      */
     uint16_t cluster_begin_lba[4] = {0x00, 0x00, 0x00, 0x00};
+
+    uint16_t fat_begin_lba[4] = {0x00, 0x00, 0x00, 0x00};
 };
 } // namespace file_system
 
