@@ -40,7 +40,7 @@ SDCard::SDCardInformation SDCard::get_sd_card_information() const
 
 SDCard::initialization_result_t SDCard::initialize_sd_card()
 {
-    const uint16_t max_number_cmd0_commands_sent = 10U;
+    const uint16_t max_number_cmd0_commands_sent = 100U;
 
     // write dummy value to SPI while CS is inactive/HIGH for at least 74 clock cycles
     gpio_write(CS_INACTIVE_HIGH, GPIO_D);
