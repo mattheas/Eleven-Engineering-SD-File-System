@@ -73,6 +73,7 @@ SDCard::initialization_result_t SDCard::initialize_sd_card()
     if (valid_cmd0_response == false)
     {
         // early return on failed CMD0
+        initialization_result = initialization_result_t::INIT_FAILED_ON_CMD0;
         return initialization_result_t::INIT_FAILED_ON_CMD0;
     }
     //================================================================================================================
@@ -97,6 +98,7 @@ SDCard::initialization_result_t SDCard::initialize_sd_card()
     else
     {
         // early return on failed CMD8
+        initialization_result = initialization_result_t::INIT_FAILED_ON_CMD8;
         return initialization_result_t::INIT_FAILED_ON_CMD8;
     }
 
@@ -116,16 +118,19 @@ SDCard::initialization_result_t SDCard::initialize_sd_card()
             cmd58_response == sd_card_command_response_t::SD_CARD_ILLEGAL_COMMAND_AND_CRC_ERROR)
     {
         // An illegal command and/ or CRC error on V1.x indicates this is not an SD card at all
+        initialization_result = initialization_result_t::INIT_FAILED_ON_CMD58;
         return initialization_result_t::INIT_FAILED_ON_CMD58;
     }
     else if (cmd58_response == sd_card_command_response_t::SD_CARD_UNSUPPORTED_VOLTAGE)
     {
         // voltage unsupported so refrain from using SD card
+        initialization_result = initialization_result_t::INIT_FAILED_ON_CMD58;
         return initialization_result_t::INIT_FAILED_ON_CMD58;
     }
     else if(cmd58_response == sd_card_command_response_t::SD_CARD_NO_RESPONSE)
     {
         // no response from SD card which is unlikely
+        initialization_result = initialization_result_t::INIT_FAILED_ON_CMD58;
         return initialization_result_t::INIT_FAILED_ON_CMD58;
     }
 
@@ -147,6 +152,7 @@ SDCard::initialization_result_t SDCard::initialize_sd_card()
         if(cmd55_response == sd_card_command_response_t::SD_CARD_NO_RESPONSE)
         {
             // no response from SD card which is unlikely
+            initialization_result = initialization_result_t::INIT_FAILED_ON_CMD55;
             return initialization_result_t::INIT_FAILED_ON_CMD55;
         }
 
@@ -166,6 +172,7 @@ SDCard::initialization_result_t SDCard::initialize_sd_card()
         }
         else if (acmd41_response == sd_card_command_response_t::SD_CARD_NO_RESPONSE)
         {
+            initialization_result = initialization_result_t::INIT_FAILED_ON_ACMD41;
             return initialization_result_t::INIT_FAILED_ON_ACMD41;
         }
 
@@ -196,16 +203,19 @@ SDCard::initialization_result_t SDCard::initialize_sd_card()
                 cmd58_response == sd_card_command_response_t::SD_CARD_ILLEGAL_COMMAND_AND_CRC_ERROR)
         {
             // An illegal command and/ or CRC error on V1.x indicates this is not an SD card at all
+            initialization_result = initialization_result_t::INIT_FAILED_ON_CMD58;
             return initialization_result_t::INIT_FAILED_ON_CMD58;
         }
         else if (cmd58_response == sd_card_command_response_t::SD_CARD_UNSUPPORTED_VOLTAGE)
         {
             // voltage unsupported so refrain from using SD card
+            initialization_result = initialization_result_t::INIT_FAILED_ON_CMD58;
             return initialization_result_t::INIT_FAILED_ON_CMD58;
         }
         else if(cmd58_response == sd_card_command_response_t::SD_CARD_NO_RESPONSE)
         {
             // no response from SD card which is unlikely
+            initialization_result = initialization_result_t::INIT_FAILED_ON_CMD58;
             return initialization_result_t::INIT_FAILED_ON_CMD58;
         }
 
@@ -223,7 +233,7 @@ SDCard::initialization_result_t SDCard::initialize_sd_card()
         }
     }
     //================================================================================================================
-
+    initialization_result = initialization_result_t::INIT_SUCCESS;
     return initialization_result_t::INIT_SUCCESS;
 }
 
