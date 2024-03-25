@@ -444,6 +444,14 @@ SDCard::sd_card_command_response_t SDCard::send_acmd41() const
     return sd_card_command_response_t::SD_CARD_NO_RESPONSE;
 }
 
+void SDCard::send_dummy_spi_bytes() const
+{
+    for (uint16_t i = 0; i < 20; i++)
+    {
+        SPI_write(0xFF, SPI1);
+    }
+}
+
 SDCard::sd_card_command_response_t SDCard::send_cmd17(uint16_t (&block)[512], const uint16_t (&block_address)[4]) const
 {
     const uint16_t block_size_bytes = 512U;
@@ -452,6 +460,7 @@ SDCard::sd_card_command_response_t SDCard::send_cmd17(uint16_t (&block)[512], co
 
     // assert CS to start communication
     gpio_write(CS_ACTIVE_LOW, GPIO_D);
+    send_dummy_spi_bytes();
 
     // Send 6-byte CMD17 command “0x51  XX XX XX XX 00” to read a block from sd card
     SPI_write(command_17, SPI1);
@@ -509,6 +518,7 @@ SDCard::sd_card_command_response_t SDCard::send_cmd24(const uint16_t (&block)[51
 
     // assert CS to start communication
     gpio_write(CS_ACTIVE_LOW, GPIO_D);
+    send_dummy_spi_bytes();
 
     // Send 6-byte CMD24 command “0x58 XX XX XX XX 00” to read a block from sd card
     SPI_write(command_24, SPI1);

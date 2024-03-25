@@ -246,6 +246,14 @@ class SDCard
     sd_card_command_response_t send_acmd41() const;
 
     /**
+     * @brief Writes dummy bytes of 0xFF to the SPI line that the SD card is 
+     * connected to. It was determined after experimentation that sending a 
+     * few bytes of 0xFF before & after a command was necessary to ensure 
+     * bug free behaviour. 
+     */
+    void send_dummy_spi_bytes() const;
+
+    /**
      * @brief Stores the result of the initialize_sd_card() method, initial
      * value before method is called is INIT_RESULT_NA indicating the result is
      * unknown.
