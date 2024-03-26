@@ -220,14 +220,9 @@ bool FileSystem::delete_file(const uint16_t (&file_name)[11], const uint16_t &nu
         current_fat_table_sector[cluster_index_in_sector+3] = 0x00; // MSB
 
         // TODO optimize this as the sector only needs to be written to if a new sector will be read in
-        /*
-        
-            TODO delete cluster entry by writing over fat table current_fat_table_sector, that is now updated
-            to have the values at the current cluster set to 0x00000000
-
-            Make sure to also update FAT Table #2
-        
-        */
+        // TODO make sure to update FAT Table #2
+        // delete cluster entry by writing over value with 0x00000000 to indicate cluster is now free
+        sd_card.send_cmd24(current_fat_table_sector, sector_number_offset_from_fat_begin);
 
         // Check if data is another cluster number or EOF (?FFFFFF8h - ?FFFFFFFh indicates EOF on FAT32)
         if (data_stored_at_cluster_index[0] >= 0xF && // MSB
@@ -247,9 +242,157 @@ bool FileSystem::delete_file(const uint16_t (&file_name)[11], const uint16_t &nu
         }
     }
 
-    // TODO update the root directory and "delete" the file by setting the first byte to 0xE5
+    // Now update the root directory entries and "delete" the file by setting the first byte to 0xE5 & clearing the upper cluster byte addr
 
-    return true;
+    // Do this by looking at the entry, then look at the parent directory (be careful of a nullptr enclosing directory)
+    // read in the that directory, sector by secotr and look for the entry, once you find it, update and delete
+
+    // Constants that identify information about 32 byte directory entries
+    constexpr uint16_t bytes_per_entry = 32U; 
+    constexpr uint16_t attribute_byte_offset = 11U;
+    constexpr uint16_t file_size_offset = 28U;
+    // TODO assumes sector size of 512 bytes, update to be sector size/ bytes per entry
+    constexpr uint16_t directory_entrys_per_sector = 16U;
+
+    // Find the most immediate enclosing directory, nullptr indicates file is in root directory
+    FAT32FileSystemEntry *files_enclosing_directory = file_system_entrys[entry_index].parent_directory;
+    uint16_t enclosing_directory_sector_address[4] = {};
+
+    // Calculate the starting sector address of the enclosing directory
+    if (files_enclosing_directory == nullptr)
+    {
+        calculate_sector_address_from_cluster_number(fat_32_volume_id.root_directory_first_cluster, enclosing_directory_sector_address);
+    }
+    else 
+    {
+        calculate_sector_address_from_cluster_number(files_enclosing_directory->starting_cluster_address, enclosing_directory_sector_address);
+    }
+
+    // flag set when the first byte of a directory entry is 0x00 (indicating no more entrys)
+    bool end_of_directory_found = false;
+
+    // flag that indicates if the file was found and marked as deleted 
+    bool file_found_in_directory = false;
+
+    // Read at minimum the first sector in the directory
+    uint16_t directory_sector[512] ={};
+    sd_card.send_cmd17(directory_sector, enclosing_directory_sector_address);
+
+    while (!end_of_directory_found)
+    {   
+        for (uint16_t i = 0; i < directory_entrys_per_sector; i++)
+        {
+            // Check first byte in 32 byte entry for end of directory
+            if (directory_sector[i*bytes_per_entry] == 0x00)
+            {
+                end_of_directory_found = true;
+                break; 
+            }
+
+            // ignore directory entries that are deleted (i.e., start with 0xE5)
+            if (directory_sector[i*bytes_per_entry] == 0xE5)
+            {
+                continue;
+            }
+
+            // Ignore LFN entries
+            if (directory_sector[i*bytes_per_entry + attribute_byte_offset] == 0xF)
+            {
+                continue;
+            }
+
+            // ignore system or hidden entrys
+            if ((directory_sector[i*bytes_per_entry + attribute_byte_offset] & 1<<1) || // 1<<1 = 0x2 (hidden)
+                 (directory_sector[i*bytes_per_entry + attribute_byte_offset] & 1<<2))  // 1<<2 = 0x4 (system)
+            {
+                continue;
+            }
+
+            // ignore an entry that is a directory that is named "." or ".." these two entries tell us info
+            // about the current directory and the enclosing directory but we do not care for this info
+            if (directory_sector[i*bytes_per_entry + attribute_byte_offset] & 1<<4 &&
+                directory_sector[i*bytes_per_entry] == 0x2E)
+            {
+                // check for a second byte that is 0x2E "." OR 0x20 " "
+                if (directory_sector[i*bytes_per_entry+1] == 0x2E ||
+                        directory_sector[i*bytes_per_entry+1] == 0x20)
+                {
+                    bool non_space_found = false;
+
+                    // iterate over remainder of bytes in entry name
+                    for (uint16_t j = 2; j < 11; j++)
+                    {
+                        if (directory_sector[i*bytes_per_entry+j] != 0x20)
+                        {
+                            non_space_found = true;
+                            break;
+                        }
+                    }
+
+                    if (non_space_found == false)
+                    {
+                        continue;
+                    }
+                }
+            }
+
+            // VALID ENTRY, check if the valid entry matches the entry we're trying to delete
+            if (directory_sector[i*bytes_per_entry + attribute_byte_offset] != file_system_entrys[entry_index].attribute_byte)
+            {
+                // attribute byte does not match, skip rest of iteration and look at next entry
+                continue;
+            }
+
+            for (uint16_t j = 0; j < 11; j++)
+            {
+                if (directory_sector[i*bytes_per_entry + j] != file_system_entrys[entry_index].name_of_entry[j])
+                {
+                    // entry name does not match, skip rest of iteration and look at next entry
+                    continue;
+                }
+            }
+
+            if (directory_sector[i*bytes_per_entry + 21] != file_system_entrys[entry_index].starting_cluster_address[0] ||
+                directory_sector[i*bytes_per_entry + 20] != file_system_entrys[entry_index].starting_cluster_address[1] ||
+                directory_sector[i*bytes_per_entry + 27] != file_system_entrys[entry_index].starting_cluster_address[2] ||
+                directory_sector[i*bytes_per_entry + 26] != file_system_entrys[entry_index].starting_cluster_address[3])
+            {
+                // cluster numbers do not match, skip reset of iteration and look at next entry
+                continue;
+            }
+
+            // ENTRYS MATCH, clear higher bytes of cluster number and set first byte to 0xE5 according to FAT32 spec to delete entry
+            directory_sector[i*bytes_per_entry + 21] = 0x00;
+            directory_sector[i*bytes_per_entry + 20] = 0x00;
+            directory_sector[i*bytes_per_entry] = 0xE5;
+
+            // Write updated sector back to SD card with "deleted" entry
+            sd_card.send_cmd24(directory_sector, enclosing_directory_sector_address);
+
+            file_found_in_directory = true;
+    
+        }
+
+        if (file_found_in_directory == true)
+        {
+            break;
+        }
+
+        // only send another read command if the end of directory has not been found
+        if (!end_of_directory_found)
+        {
+            // An entire sector has been processed without finding end of directory so read next sector
+            uint16_t count_of_one[4] = {0x0, 0x0, 0x0, 0x1};
+            add_4_byte_numbers(count_of_one, enclosing_directory_sector_address, enclosing_directory_sector_address);
+
+            sd_card.send_cmd17(directory_sector, enclosing_directory_sector_address);
+            xpd_putc('\n');
+        }
+
+    }
+
+    // should return true if file was found in its enclosing directory and it was marked as deleted
+    return file_found_in_directory;
 }
 
 bool FileSystem::read_fat32_master_boot_record()
