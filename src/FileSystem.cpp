@@ -370,6 +370,23 @@ bool FileSystem::delete_file(const uint16_t (&file_name)[11], const uint16_t &nu
             sd_card.send_cmd24(directory_sector, enclosing_directory_sector_address);
 
             file_found_in_directory = true;
+
+            // delete file from file system entries once it has been marked as deleted on the sd card
+            file_system_entrys[entry_index].entry_in_use = false;
+            file_system_entrys[entry_index].parent_directory = nullptr;
+            file_system_entrys[entry_index].attribute_byte = 0x00;
+            for (uint16_t k = 0; k < 11; k++)
+            {
+                file_system_entrys[entry_index].name_of_entry[k] = 0x0;
+            }
+            file_system_entrys[entry_index].starting_cluster_address[3] = 0x0;
+            file_system_entrys[entry_index].starting_cluster_address[2] = 0x0;
+            file_system_entrys[entry_index].starting_cluster_address[1] = 0x0;
+            file_system_entrys[entry_index].starting_cluster_address[0] = 0x0;
+            file_system_entrys[entry_index].size_of_entry_in_bytes[3] = 0x0;
+            file_system_entrys[entry_index].size_of_entry_in_bytes[2] = 0x0;
+            file_system_entrys[entry_index].size_of_entry_in_bytes[1] = 0x0;
+            file_system_entrys[entry_index].size_of_entry_in_bytes[0] = 0x0;
     
         }
 
