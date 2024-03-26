@@ -610,7 +610,7 @@ SDCard::sd_card_command_response_t SDCard::send_cmd24(const uint16_t (&block)[51
 
     // Check if the data was accepted
     // Check for 0xCA b/c there seems to be a off by 1 bit shift for some reason?
-    if (data_response_token == 0xCA || ((data_response_token & 0x1F) == 0x5))
+    if ((data_response_token & 0x1F) == 0x5)
     {
         // data accepted now simply busy wait while sd card sends busy tokens
         bool receiving_busy_wait_token = true;
